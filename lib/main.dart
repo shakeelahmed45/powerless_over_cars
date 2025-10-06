@@ -1,7 +1,27 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:powerless_over_cars/screens/webview_tab.dart';
 
-void main() {
+void main() async {
+  // Ensure Flutter engine & plugins are initialized before any plugin calls or runApp.
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Optional: lock orientation to portrait if desired (uncomment if you want)
+  // await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
+  // If you need to do any async initialization (e.g., shared_preferences, Firebase, etc.)
+  // do it here and await it before runApp.
+  // Example:
+  // await someAsyncInitFunction();
+
+  // On Android we sometimes set a specific WebView implementation - not required on iOS.
+  // If you use e.g., SurfaceAndroidWebView for Android:
+  // if (Platform.isAndroid) {
+  //   WebView.platform = SurfaceAndroidWebView();
+  // }
+
   runApp(const PowerlessOverCarsApp());
 }
 
@@ -14,7 +34,6 @@ class PowerlessOverCarsApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Powerless Over Cars',
       theme: ThemeData(
-        // keep your brand theme available (used by buttons etc.)
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFF222732),
           centerTitle: true,
@@ -54,10 +73,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ? WebviewTab.globalKeys[0]
       : GlobalKey();
 
-  /// Back handling:
-  /// - ask WebView to handle back (native or fallback history)
-  /// - if handled -> do NOT pop the app
-  /// - otherwise -> allow system pop (exit app)
   Future<bool> _onWillPop() async {
     final dynamic state = _webKey.currentState;
     final handled = await (state?.handleBackIntent?.call() ?? Future.value(false)) as bool;
@@ -69,7 +84,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
-        // No AppBar, no BottomNavigationBar — full screen WebView
         body: SafeArea(
           child: WebviewTab(
             key: _webKey,
@@ -81,4 +95,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
