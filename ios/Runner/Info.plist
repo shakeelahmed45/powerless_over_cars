@@ -2,6 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 
@@ -38,7 +39,6 @@
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 
-	<!-- Remove UIMainStoryboardFile since Flutter doesn’t use Main.storyboard -->
 	<key>UIMainStoryboardFile</key>
 	<string></string>
 
@@ -59,12 +59,30 @@
 
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
-
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 
-	<!-- Required by Apple for export compliance -->
+	<!-- ✅ Allow WebView HTTPS/HTTP content -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+
+	<!-- ✅ Required for Flutter WebView -->
+	<key>io.flutter.embedded_views_preview</key>
+	<true/>
+
+	<!-- ✅ Allow URL Schemes -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>https</string>
+		<string>http</string>
+	</array>
+
+	<!-- ✅ Apple export compliance -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+
 </dict>
 </plist>
