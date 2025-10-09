@@ -2,7 +2,7 @@ name: powerless_over_cars
 description: Powerless Over Cars - WebView Flutter app with connectivity handling and custom loader.
 publish_to: "none"
 
-version: 1.0.0+4   # 👈 bumped build number to 4
+version: 1.0.0+5   # 👈 bumped build number to 5
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
