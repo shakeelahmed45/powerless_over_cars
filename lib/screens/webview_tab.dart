@@ -4,14 +4,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:internet_connection_checker/internet_connection_checker.dart';
 
 class WebviewTab extends StatefulWidget {
   final String title;
   final String url;
 
-  /// Keep using raw GlobalKey objects so other files don't need to reference private types.
-  static final List<GlobalKey> globalKeys = List.generate(5, (_) => GlobalKey());
+  static final List<GlobalKey> globalKeys =
+      List.generate(5, (_) => GlobalKey());
 
   const WebviewTab({super.key, required this.title, required this.url});
 
@@ -25,13 +25,10 @@ class _WebviewTabState extends State<WebviewTab>
   bool _isLoading = true;
   bool _hasInternet = true;
 
-  /// connectivity_plus emits Stream<List<ConnectivityResult>>
-  StreamSubscription<List<ConnectivityResult>>? _connSub;
+  StreamSubscription<bool>? _connSub;
 
-  // Local navigation history (fallback when native canGoBack() is false)
   final List<String> _history = [];
 
-  // Car icon spinner
   late final AnimationController _spinCtrl =
       AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
         ..repeat();
@@ -69,12 +66,13 @@ class _WebviewTabState extends State<WebviewTab>
     _listenConnectivity();
   }
 
+  /// 🔍 Listen for internet connection changes
   void _listenConnectivity() {
-    _connSub = Connectivity().onConnectivityChanged.listen((results) async {
-      final connectedLayer1 =
-          results.isNotEmpty && !results.contains(ConnectivityResult.none);
-      await _updateInternetState(connectedLayer1);
-      if (_hasInternet && mounted) {
+    _connSub = InternetConnectionChecker().onStatusChange.listen((status) async {
+      final connected = status == InternetConnectionStatus.connected;
+      await _updateInternetState(connected);
+
+      if (connected && mounted) {
         try {
           await _controller.reload();
         } catch (_) {}
@@ -82,34 +80,18 @@ class _WebviewTabState extends State<WebviewTab>
     });
   }
 
+  /// 🔍 Check initial connection on startup
   Future<void> _initialConnectivityCheck() async {
-    final res = await Connectivity().checkConnectivity();
-    bool connected;
-    if (res is List<ConnectivityResult>) {
-      connected = res.any((e) => e != ConnectivityResult.none);
-    } else if (res is ConnectivityResult) {
-      connected = res != ConnectivityResult.none;
-    } else {
-      connected = true;
-    }
-    await _updateInternetState(connected);
+    final hasConnection = await InternetConnectionChecker().hasConnection;
+    await _updateInternetState(hasConnection);
   }
 
-  Future<void> _updateInternetState(bool connectedLayer1) async {
-    if (!connectedLayer1) {
-      setState(() => _hasInternet = false);
-      return;
-    }
-    try {
-      final lookup =
-          await InternetAddress.lookup('example.com').timeout(const Duration(seconds: 3));
-      final ok = lookup.isNotEmpty && lookup.first.rawAddress.isNotEmpty;
-      setState(() => _hasInternet = ok);
-    } catch (_) {
-      setState(() => _hasInternet = false);
-    }
+  /// ✅ Update UI based on internet state
+  Future<void> _updateInternetState(bool connected) async {
+    setState(() => _hasInternet = connected);
   }
 
+  /// ✅ Manage internal WebView history
   Future<void> _maybePushCurrentUrlToHistory() async {
     try {
       final cur = await _controller.currentUrl();
@@ -117,17 +99,13 @@ class _WebviewTabState extends State<WebviewTab>
       if (_history.isEmpty || _history.last != cur) {
         _history.add(cur);
         if (kDebugMode) {
-          // ignore: avoid_print
           print('[webview] history push: $cur (len=${_history.length})');
         }
       }
-    } catch (_) {
-      // ignore
-    }
+    } catch (_) {}
   }
 
-  /// Back button inside the WebView history
-  /// returns true when handled (we went back inside WebView)
+  /// ✅ Handle back button inside WebView
   Future<bool> handleBackIntent() async {
     try {
       if (await _controller.canGoBack()) {
@@ -141,13 +119,11 @@ class _WebviewTabState extends State<WebviewTab>
         await _controller.loadRequest(Uri.parse(prev));
         return true;
       }
-    } catch (_) {
-      // ignore
-    }
+    } catch (_) {}
     return false;
   }
 
-  /// Pull-to-refresh & external refresh button support
+  /// ✅ Reload manually or pull-to-refresh
   Future<void> reloadPage() async {
     setState(() => _isLoading = true);
     try {
@@ -182,7 +158,7 @@ class _WebviewTabState extends State<WebviewTab>
               const Icon(Icons.wifi_off, size: 64, color: Colors.black54),
               const SizedBox(height: 16),
               const Text(
-                "connection lost please connect your internet and retry button.",
+                "Connection lost. Please connect your internet and tap Retry.",
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, color: Colors.black87),
               ),
@@ -201,7 +177,6 @@ class _WebviewTabState extends State<WebviewTab>
       );
     }
 
-    // Use a single EagerGestureRecognizer factory to avoid duplicate-type assertion.
     return RefreshIndicator(
       onRefresh: reloadPage,
       child: Stack(
@@ -209,13 +184,13 @@ class _WebviewTabState extends State<WebviewTab>
           ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
-              // Add +1 px height to avoid "stuck at very end" edge cases
               SizedBox(
                 height: MediaQuery.of(context).size.height + 1,
                 child: WebViewWidget(
                   controller: _controller,
                   gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-                    Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
+                    Factory<OneSequenceGestureRecognizer>(
+                        () => EagerGestureRecognizer()),
                   },
                 ),
               ),
