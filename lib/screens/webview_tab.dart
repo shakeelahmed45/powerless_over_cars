@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:internet_connection_checker/internet_connection_checker.dart';
+import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 
 class WebviewTab extends StatefulWidget {
   final String title;
@@ -25,8 +25,7 @@ class _WebviewTabState extends State<WebviewTab>
   bool _isLoading = true;
   bool _hasInternet = true;
 
-  StreamSubscription<bool>? _connSub;
-
+  StreamSubscription<InternetStatus>? _connSub;
   final List<String> _history = [];
 
   late final AnimationController _spinCtrl =
@@ -68,12 +67,17 @@ class _WebviewTabState extends State<WebviewTab>
 
   /// 🔍 Listen for internet connection changes
   void _listenConnectivity() {
-    _connSub = InternetConnectionChecker().onStatusChange.listen((status) async {
-      final connected = status == InternetConnectionStatus.connected;
-      await _updateInternetState(connected);
+    _connSub = InternetConnection().onStatusChange.listen((status) async {
+      final connected = status == InternetStatus.connected;
 
+      if (connected != _hasInternet) {
+        setState(() => _hasInternet = connected);
+      }
+
+      // Only reload when connection is restored
       if (connected && mounted) {
         try {
+          await Future.delayed(const Duration(seconds: 1)); // small delay for stability
           await _controller.reload();
         } catch (_) {}
       }
@@ -82,12 +86,7 @@ class _WebviewTabState extends State<WebviewTab>
 
   /// 🔍 Check initial connection on startup
   Future<void> _initialConnectivityCheck() async {
-    final hasConnection = await InternetConnectionChecker().hasConnection;
-    await _updateInternetState(hasConnection);
-  }
-
-  /// ✅ Update UI based on internet state
-  Future<void> _updateInternetState(bool connected) async {
+    final connected = await InternetConnection().hasInternetAccess;
     setState(() => _hasInternet = connected);
   }
 
@@ -165,7 +164,7 @@ class _WebviewTabState extends State<WebviewTab>
               const SizedBox(height: 16),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFeb761c),
+                  backgroundColor: Color(0xFFeb761c),
                   foregroundColor: Colors.white,
                 ),
                 onPressed: _retryConnectivity,
