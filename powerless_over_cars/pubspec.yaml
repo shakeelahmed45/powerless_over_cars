@@ -1,0 +1,28 @@
+name: powerless_over_cars
+description: Powerless Over Cars - WebView Flutter app with connectivity handling and custom loader.
+publish_to: "none"
+
+version: 1.0.0+10   # 👈 bumped build number to 10
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  internet_connection_checker_plus: ^2.9.0
+  webview_flutter: ^4.8.0
+
+dev_dependencies:
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icon/app_icon.png
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21
