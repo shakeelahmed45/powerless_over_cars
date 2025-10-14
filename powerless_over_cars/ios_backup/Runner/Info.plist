@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+
+	<key>CFBundleDisplayName</key>
+	<string>Powerless Over Cars</string>
+
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+
+	<key>CFBundleName</key>
+	<string>Powerless Over Cars</string>
+
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+
+	<key>CFBundleShortVersionString</key>
+	<string>$(FLUTTER_BUILD_NAME)</string>
+
+	<key>CFBundleSignature</key>
+	<string>????</string>
+
+	<key>CFBundleVersion</key>
+	<string>$(FLUTTER_BUILD_NUMBER)</string>
+
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+
+	<key>UIMainStoryboardFile</key>
+	<string></string>
+
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+
+	<!-- Allow WebView HTTPS/HTTP content (needed for loading remote web content) -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<!-- If you prefer stricter policy, remove NSAllowsArbitraryLoads and add specific ExceptionDomains instead -->
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<!-- helpful for web content specifically -->
+		<key>NSAllowsArbitraryLoadsInWebContent</key>
+		<true/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>powerlessovercars.com</key>
+			<dict>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+				<key>NSTemporaryExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSTemporaryExceptionMinimumTLSVersion</key>
+				<string>TLSv1.1</string>
+			</dict>
+		</dict>
+	</dict>
+
+	<!-- Flutter embedded views (required for webview on iOS) -->
+	<key>io.flutter.embedded_views_preview</key>
+	<true/>
+
+	<!-- Common permission descriptions (add any you actually use) -->
+	<key>NSCameraUsageDescription</key>
+	<string>We need camera access to allow you to take photos or scan codes in the app.</string>
+
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Microphone access is required for audio features.</string>
+
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Photo library access is required to upload and use photos in the app.</string>
+
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Photo library write access is required to save images from the app.</string>
+
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Location is used to show nearby vehicles and relevant content.</string>
+
+	<!-- Allow checking for URL schemes used by the app -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tel</string>
+		<string>mailto</string>
+		<string>sms</string>
+	</array>
+
+	<!-- App Transport & export compliance -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+
+</dict>
+</plist>
