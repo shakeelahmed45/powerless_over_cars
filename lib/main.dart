@@ -1,26 +1,17 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import 'package:powerless_over_cars/screens/webview_tab.dart';
 
 void main() async {
-  // Ensure Flutter engine & plugins are initialized before any plugin calls or runApp.
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Optional: lock orientation to portrait if desired (uncomment if you want)
-  // await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-
-  // If you need to do any async initialization (e.g., shared_preferences, Firebase, etc.)
-  // do it here and await it before runApp.
-  // Example:
-  // await someAsyncInitFunction();
-
-  // On Android we sometimes set a specific WebView implementation - not required on iOS.
-  // If you use e.g., SurfaceAndroidWebView for Android:
-  // if (Platform.isAndroid) {
-  //   WebView.platform = SurfaceAndroidWebView();
-  // }
+  // ✅ Platform-specific WebView setup
+  if (Platform.isAndroid) {
+    WebViewPlatform.instance = SurfaceAndroidWebView();
+  } else if (Platform.isIOS) {
+    WebViewPlatform.instance = WebKitWebViewPlatform();
+  }
 
   runApp(const PowerlessOverCarsApp());
 }
@@ -65,10 +56,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Use the Home (first) URL — app is now single fullscreen webview
   static const String homeUrl = "https://powerlessovercars.com/app/";
-
-  // Use the provided global key (keeps compatibility with your other code)
   final GlobalKey _webKey = WebviewTab.globalKeys.isNotEmpty
       ? WebviewTab.globalKeys[0]
       : GlobalKey();

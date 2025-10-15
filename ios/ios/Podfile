@@ -1,0 +1,27 @@
+# Uncomment the next line to define a global platform for your project
+platform :ios, '13.0'
+
+use_frameworks!
+use_modular_headers!
+
+# Locate Flutter SDK
+flutter_bin = `which flutter`.strip
+raise "❌ Could not find Flutter SDK" if flutter_bin.empty?
+flutter_root = File.expand_path("../../", flutter_bin)
+require File.expand_path(File.join(flutter_root, "packages", "flutter_tools", "bin", "podhelper.rb"))
+
+flutter_ios_podfile_setup
+
+target 'Runner' do
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+end
+
+# ✅ FIXED POST-INSTALL BLOCK
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    if target.respond_to?(:platform_name) && defined?(flutter_additional_ios_build_settings)
+      flutter_additional_ios_build_settings(target)
+    end
+  end
+end
+

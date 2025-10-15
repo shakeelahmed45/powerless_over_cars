@@ -1,0 +1,35 @@
+platform :ios, '13.0'
+use_frameworks!
+use_modular_headers!
+
+# Locate Flutter SDK even if /usr/local/bin/flutter is a symlink
+flutter_bin = `which flutter`.strip
+if flutter_bin.nil? || flutter_bin.empty?
+  abort("❌ Could not find 'flutter' on PATH. Make sure Flutter is installed.")
+end
+
+flutter_bin_real = File.realpath(flutter_bin)
+# flutter/bin/flutter -> go up two dirs to get FLUTTER_ROOT
+flutter_root = File.expand_path('../../', flutter_bin_real)
+
+# Try to require File.expand_path('../.ios/Flutter/podhelper.rb', __FILE__)
+podhelper_path_1 = File.expand_path(File.join(flutter_root, 'packages', 'flutter_tools', 'bin', 'podhelper.rb'))
+podhelper_path_2 = File.expand_path(File.join(__dir__, '../.ios/Flutter/podhelper.rb'))
+
+if File.exist?(podhelper_path_1)
+  require podhelper_path_1
+elsif File.exist?(podhelper_path_2)
+  require podhelper_path_2
+else
+  abort("❌ Could not find podhelper.rb — try running 'flutter build ios --no-codesign' first.")
+end
+
+flutter_ios_podfile_setup
+
+target 'Runner' do
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+end
+
+post_install do |installer|
+  flutter_additional_ios_build_settings(installer)
+end
