@@ -1,18 +1,9 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:powerless_over_cars/screens/webview_tab.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // ✅ Platform-specific WebView setup
-  if (Platform.isAndroid) {
-    WebViewPlatform.instance = SurfaceAndroidWebView();
-  } else if (Platform.isIOS) {
-    WebViewPlatform.instance = WebKitWebViewPlatform();
-  }
-
   runApp(const PowerlessOverCarsApp());
 }
 
@@ -63,7 +54,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<bool> _onWillPop() async {
     final dynamic state = _webKey.currentState;
-    final handled = await (state?.handleBackIntent?.call() ?? Future.value(false)) as bool;
+    final handled =
+        await (state?.handleBackIntent?.call() ?? Future.value(false)) as bool;
     return !handled;
   }
 
