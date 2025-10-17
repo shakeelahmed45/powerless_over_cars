@@ -7,11 +7,20 @@ flutter_application_path = '../'
 target 'Runner' do
   config = ENV['CONFIGURATION'] || 'Release'
   engine_podspec = File.expand_path(File.join(__dir__, 'Flutter', config, 'Flutter.podspec'))
+
+  # ✅ Automatically build Flutter frameworks if missing
   unless File.exist?(engine_podspec)
-    abort("❌ Missing #{engine_podspec}. Run: flutter build ios-framework --cocoapods --output=ios/Flutter")
+    puts "⚙️ Flutter podspec not found at #{engine_podspec}. Generating now..."
+    system("flutter build ios-framework --cocoapods --output=ios/Flutter --#{config.downcase}")
   end
+
+  unless File.exist?(engine_podspec)
+    abort("❌ Still missing #{engine_podspec} after generation attempt.")
+  end
+
   pod 'Flutter', :podspec => engine_podspec
 
+  # ✅ Load plugin dependencies from .flutter-plugins-dependencies
   plugin_file = File.expand_path(File.join(flutter_application_path, '.flutter-plugins-dependencies'))
   if File.exist?(plugin_file)
     require 'json'
@@ -22,6 +31,7 @@ target 'Runner' do
   end
 end
 
+# ✅ Ensure deployment target and framework distribution compatibility
 post_install do |installer|
   installer.pods_project.targets.each do |t|
     t.build_configurations.each do |c|
