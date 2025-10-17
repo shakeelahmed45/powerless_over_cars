@@ -20,18 +20,31 @@ target 'Runner' do
 
   pod 'Flutter', :podspec => engine_podspec
 
-  # ✅ Load plugin dependencies from .flutter-plugins-dependencies
+  # ✅ Load and fix plugin dependencies from .flutter-plugins-dependencies
   plugin_file = File.expand_path(File.join(flutter_application_path, '.flutter-plugins-dependencies'))
   if File.exist?(plugin_file)
     require 'json'
-    ios_plugins = (JSON.parse(File.read(plugin_file))['plugins'] || {})['ios'] || []
-    ios_plugins.each do |p|
-      pod p['name'], :path => File.expand_path(File.join(flutter_application_path, p['path'], 'ios'))
+    plugins = JSON.parse(File.read(plugin_file))['plugins'] || {}
+    ios_plugins = plugins['ios'] || []
+    ios_plugins.each do |plugin|
+      name = plugin['name']
+      path = plugin['path']
+      ios_path = File.expand_path(File.join(flutter_application_path, path, 'ios'))
+      
+      # Fix missing podspecs like connectivity_plus
+      unless File.exist?(File.join(ios_path, "#{name}.podspec"))
+        puts "⚠️ Podspec for #{name} not found at #{ios_path}, regenerating..."
+        Dir.chdir(ios_path) do
+          system("flutter pub get || true")
+        end
+      end
+
+      pod name, :path => ios_path
     end
   end
 end
 
-# ✅ Ensure deployment target and framework distribution compatibility
+# ✅ Ensure compatibility for iOS builds and Cocoapods
 post_install do |installer|
   installer.pods_project.targets.each do |t|
     t.build_configurations.each do |c|
