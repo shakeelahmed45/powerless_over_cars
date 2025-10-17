@@ -2,35 +2,34 @@ platform :ios, '13.0'
 use_frameworks! :linkage => :static
 use_modular_headers!
 
-# Resolve to absolute project root (not just '../')
 flutter_application_path = File.expand_path('..', __dir__)
 
-# --- Helper: turn whatever Flutter gives us into a real absolute path ---
+# --- Helper to normalize plugin paths ---
 def normalize_plugin_root(base, plugin_path)
-  return File.expand_path(plugin_path) if plugin_path.start_with?('/', '~')             # absolute or ~
-  return plugin_path if plugin_path =~ %r{^[A-Za-z]:[\\/]}                              # Windows path (rare on CI)
-  adjusted = plugin_path.start_with?('Users/') ? "/#{plugin_path}" : plugin_path        # fix "Users/..." (missing leading slash)
+  return File.expand_path(plugin_path) if plugin_path.start_with?('/', '~')
+  return plugin_path if plugin_path =~ %r{^[A-Za-z]:[\\/]}
+  adjusted = plugin_path.start_with?('Users/') ? "/#{plugin_path}" : plugin_path
   File.expand_path(File.join(base, adjusted))
 end
 
 target 'Runner' do
-  # Make sure engine podspec exists (build both modes once to be safe)
+  # Build both Debug & Release engine frameworks so both podspecs exist
   debug_podspec   = File.expand_path(File.join(__dir__, 'Flutter', 'Debug',   'Flutter.podspec'))
   release_podspec = File.expand_path(File.join(__dir__, 'Flutter', 'Release', 'Flutter.podspec'))
 
   unless File.exist?(debug_podspec) && File.exist?(release_podspec)
-    puts "⚙️ Generating Flutter iOS frameworks & podspecs (debug/release)..."
-    system('flutter build ios-framework --debug   --cocoapods --output=ios/Flutter')  unless File.exist?(debug_podspec)
-    system('flutter build ios-framework --release --cocoapods --output=ios/Flutter')  unless File.exist?(release_podspec)
+    puts "⚙️ Generating missing Flutter iOS frameworks..."
+    system('flutter build ios-framework --debug --cocoapods --output=ios/Flutter || true')
+    system('flutter build ios-framework --release --cocoapods --output=ios/Flutter || true')
   end
 
   config = (ENV['CONFIGURATION'] || 'Release').capitalize
   engine_podspec = (config == 'Debug') ? debug_podspec : release_podspec
   abort("❌ Missing engine podspec at #{engine_podspec}") unless File.exist?(engine_podspec)
 
-  pod 'Flutter', :podspec => engine_podspec
+  # ✅ FIX: use :path instead of :podspec to avoid "Unsupported download strategy"
+  pod 'Flutter', :path => File.dirname(engine_podspec)
 
-  # --- Load plugin pods robustly from .flutter-plugins-dependencies ---
   plugin_file = File.expand_path(File.join(flutter_application_path, '.flutter-plugins-dependencies'))
   if File.exist?(plugin_file)
     require 'json'
@@ -44,16 +43,19 @@ target 'Runner' do
       declared_path = plugin['path'] || ''
       plugin_root = normalize_plugin_root(flutter_application_path, declared_path)
 
-      # Candidate locations where <name>.podspec may live
       candidates = [
-        File.join(plugin_root, 'ios'), # typical
-        plugin_root                    # some plugins keep podspec at root
-      ]
-      # Fallback: search pub cache (hosted + git) if above failed
-      candidates += Dir.glob(File.join(home_cache, 'hosted', 'pub.dev', "#{name}-*", 'ios'))
-      candidates += Dir.glob(File.join(home_cache, 'git',    "#{name}-*", 'ios'))
+        File.join(plugin_root, 'ios'),
+        plugin_root,
+        File.join(home_cache, 'hosted', 'pub.dev', "#{name}-*", 'ios'),
+        File.join(home_cache, 'git', "#{name}-*", 'ios')
+      ].flat_map { |pattern| Dir.glob(pattern) }
 
       resolved = candidates.find { |dir| File.exist?(File.join(dir, "#{name}.podspec")) }
+
+      # 🩹 Special fallback for webview_flutter_wkwebview
+      if !resolved && name == 'webview_flutter_wkwebview'
+        resolved = File.join(home_cache, 'hosted', 'pub.dev', 'webview_flutter_wkwebview-3.23.1', 'ios')
+      end
 
       if resolved
         puts "✅ Using #{name} from #{resolved}"
@@ -63,11 +65,10 @@ target 'Runner' do
       end
     end
   else
-    puts "ℹ️ No .flutter-plugins-dependencies at #{plugin_file}"
+    puts "ℹ️ No .flutter-plugins-dependencies found at #{plugin_file}"
   end
 end
 
-# --- iOS build settings hygiene ---
 post_install do |installer|
   installer.pods_project.targets.each do |t|
     t.build_configurations.each do |c|
