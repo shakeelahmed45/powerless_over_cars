@@ -2,73 +2,36 @@ platform :ios, '13.0'
 use_frameworks! :linkage => :static
 use_modular_headers!
 
-flutter_application_path = '../'
+flutter_application_root = File.expand_path('..', __dir__)
 
 target 'Runner' do
   config = ENV['CONFIGURATION'] || 'Release'
-  engine_podspec = File.expand_path(File.join(__dir__, 'Flutter', config, 'Flutter.podspec'))
+  flutter_engine_dir = File.expand_path(File.join(__dir__, 'Flutter', config))
+  pod 'Flutter', :path => flutter_engine_dir
 
-  # ✅ Auto-create the Flutter engine podspec if missing
-  unless File.exist?(engine_podspec)
-    puts "⚙️ Flutter podspec not found at #{engine_podspec}. Regenerating..."
-    system("flutter build ios-framework --cocoapods --no-universal --output=ios/Flutter")
-  end
-
-  # ✅ Fail early if Flutter.podspec still missing
-  unless File.exist?(engine_podspec)
-    abort("❌ Missing #{engine_podspec}. Flutter engine not built correctly.")
-  end
-
-  # ✅ Link Flutter engine
-  pod 'Flutter', :podspec => engine_podspec
-
-  # ✅ Load Flutter plugin dependencies
-  plugin_file = File.expand_path(File.join(flutter_application_path, '.flutter-plugins-dependencies'))
+  plugin_file = File.expand_path(File.join(flutter_application_root, '.flutter-plugins-dependencies'))
   if File.exist?(plugin_file)
     require 'json'
-    plugins = JSON.parse(File.read(plugin_file))['plugins'] || {}
-    ios_plugins = plugins['ios'] || []
-
-    ios_plugins.each do |plugin|
-      name = plugin['name']
-      path = plugin['path']
-      ios_path = File.expand_path(File.join(flutter_application_path, path, 'ios'))
-
-      # Handle missing podspecs (common for connectivity_plus & webview_flutter_wkwebview)
-      podspec_file = File.join(ios_path, "#{name}.podspec")
-      unless File.exist?(podspec_file)
-        puts "⚠️ Podspec for #{name} not found, generating placeholder..."
-        FileUtils.mkdir_p(ios_path)
-        File.open(podspec_file, 'w') do |f|
-          f.puts <<~PODSPEC
-            Pod::Spec.new do |s|
-              s.name             = '#{name}'
-              s.version          = '1.0.0'
-              s.summary          = 'Auto-generated podspec for #{name}'
-              s.homepage         = 'https://pub.dev/packages/#{name}'
-              s.license          = { :type => 'BSD' }
-              s.author           = { 'Flutter Dev' => 'flutter-dev@google.com' }
-              s.source           = { :path => '.' }
-              s.source_files     = 'Classes/**/*'
-              s.dependency 'Flutter'
-              s.platform         = :ios, '13.0'
-            end
-          PODSPEC
+    ios_plugins = (JSON.parse(File.read(plugin_file))['plugins'] || {})['ios'] || []
+    ios_plugins.each do |p|
+      plugin_path = p['path']
+      ios_dir =
+        if plugin_path.start_with?('/')
+          File.join(plugin_path, 'ios')
+        else
+          File.expand_path(File.join(flutter_application_root, plugin_path, 'ios'))
         end
-      end
-
-      pod name, :path => ios_path
+      pod p['name'], :path => ios_dir
     end
   end
 end
 
-# ✅ Post-install hook for iOS compatibility
 post_install do |installer|
   installer.pods_project.targets.each do |t|
     t.build_configurations.each do |c|
       c.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
       c.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
-      c.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
     end
   end
 end
+
