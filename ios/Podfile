@@ -1,80 +1,9 @@
-# Podfile — Flutter iOS (Codemagic-safe, local helper version)
 platform :ios, '13.0'
-use_frameworks! :linkage => :static
+
+use_frameworks!
 use_modular_headers!
 
-require 'json'
-
-# -----------------------------------------------------------
-# 1️⃣ Define local Flutter helper methods (self-contained)
-# -----------------------------------------------------------
-def flutter_ios_podfile_setup
-  # Placeholder for compatibility with Flutter template
-end
-
-def flutter_install_all_ios_pods(app_path)
-  config = ENV['CONFIGURATION'] || 'Release'
-  engine_dir = File.expand_path(File.join(app_path, 'Flutter', config))
-  engine_podspec = File.join(engine_dir, 'Flutter.podspec')
-
-  # ✅ Use local Flutter engine if available
-  if File.exist?(engine_podspec)
-    pod 'Flutter', :path => engine_dir
-  end
-
-  # ✅ Load plugin dependencies from .flutter-plugins-dependencies
-  plugin_file = File.expand_path(File.join(app_path, '..', '.flutter-plugins-dependencies'))
-  return unless File.exist?(plugin_file)
-
-  deps = JSON.parse(File.read(plugin_file))
-  ios_plugins = (deps['plugins'] || {})['ios'] || []
-
-  ios_plugins.each do |pl|
-    name = pl['name']
-    root = File.expand_path(File.join(app_path, '..', pl['path']))
-    ios_dir = File.join(root, 'ios')
-
-    root_podspec = File.join(root, "#{name}.podspec")
-    ios_podspec  = File.join(ios_dir, "#{name}.podspec")
-
-    if File.exist?(ios_podspec)
-      pod name, :path => ios_dir
-    elsif File.exist?(root_podspec)
-      pod name, :path => root
-    else
-      # Fallback (safe): still add plugin by iOS folder
-      pod name, :path => ios_dir
-    end
-  end
-end
-
-def flutter_additional_ios_build_settings(target)
-  target.build_configurations.each do |config|
-    config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] ||= '13.0'
-    config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] ||= 'YES'
-    config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] ||= 'arm64'
-  end
-end
-
-# -----------------------------------------------------------
-# 2️⃣ Flutter project setup
-# -----------------------------------------------------------
-flutter_application_path = File.expand_path('..', __dir__)
-flutter_ios_podfile_setup
-
 target 'Runner' do
-  use_frameworks!
-  use_modular_headers!
-
-  # ✅ Install all iOS pods locally
-  flutter_install_all_ios_pods(flutter_application_path)
-end
-
-# -----------------------------------------------------------
-# 3️⃣ Post-install adjustments
-# -----------------------------------------------------------
-post_install do |installer|
-  installer.pods_project.targets.each do |t|
-    flutter_additional_ios_build_settings(t)
-  end
+  flutter_application_path = '../'
+  eval(File.read(File.join(flutter_application_path, '.ios', 'Flutter', 'podhelper.rb')), binding)
 end
