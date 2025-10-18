@@ -1,27 +1,47 @@
-# Uncomment the next line to define a global platform for your project
 platform :ios, '13.0'
-
-use_frameworks!
+use_frameworks! :linkage => :static
 use_modular_headers!
 
-# Locate Flutter SDK
-flutter_bin = `which flutter`.strip
-raise "❌ Could not find Flutter SDK" if flutter_bin.empty?
-flutter_root = File.expand_path("../../", flutter_bin)
-require File.expand_path(File.join(flutter_root, "packages", "flutter_tools", "bin", "podhelper.rb"))
+require 'pathname'
 
-flutter_ios_podfile_setup
+# Project root (one level above ios/)
+flutter_application_path = File.expand_path('..', __dir__)
 
 target 'Runner' do
-  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
-end
+  use_frameworks!
+  use_modular_headers!
 
-# ✅ FIXED POST-INSTALL BLOCK
-post_install do |installer|
-  installer.pods_project.targets.each do |target|
-    if target.respond_to?(:platform_name) && defined?(flutter_additional_ios_build_settings)
-      flutter_additional_ios_build_settings(target)
+  # Use the frameworks that Codemagic will generate in pre-build
+  # We default to Debug because your Codemagic build is --debug
+  config = ENV['CONFIGURATION'] || 'Debug'
+  flutter_dir = File.expand_path(File.join(__dir__, 'Flutter', config))
+
+  # Point CocoaPods to the local Flutter pod (no network/download)
+  pod 'Flutter', :path => flutter_dir
+
+  # Load plugin pods from .flutter-plugins-dependencies
+  plugin_file = File.join(flutter_application_path, '.flutter-plugins-dependencies')
+  if File.exist?(plugin_file)
+    require 'json'
+    plugins = JSON.parse(File.read(plugin_file))['plugins'] || {}
+    (plugins['ios'] || []).each do |p|
+      plugin_root = p['path']
+      ios_dir =
+        if Pathname.new(plugin_root).absolute?
+          File.join(plugin_root, 'ios')
+        else
+          File.join(flutter_application_path, plugin_root, 'ios')
+        end
+      pod p['name'], :path => ios_dir
     end
   end
 end
 
+post_install do |installer|
+  installer.pods_project.targets.each do |t|
+    t.build_configurations.each do |c|
+      c.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+      c.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
+    end
+  end
+end
