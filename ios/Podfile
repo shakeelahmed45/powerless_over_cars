@@ -29,20 +29,25 @@ def locate_flutter_root
 end
 
 flutter_root = locate_flutter_root
-abort('FLUTTER_ROOT not found. Ensure Flutter is on PATH and run "flutter pub get".') \
+abort('❌ FLUTTER_ROOT not found. Ensure Flutter is on PATH and run "flutter pub get".') \
   if flutter_root.nil? || flutter_root.empty?
 
 # ✅ Load Flutter's official CocoaPods helper (correct path)
 require File.expand_path('packages/flutter_tools/bin/podhelper', flutter_root)
 
-# Standard Flutter iOS setup
+# --- Standard Flutter iOS setup ---
 flutter_ios_podfile_setup
 
 target 'Runner' do
-  # Do NOT add/force use_frameworks! here unless you know you need it.
+  # Do NOT add `use_frameworks!` unless required by a plugin.
   flutter_install_all_ios_pods(File.dirname(File.realpath(__FILE__)))
 end
 
+# --- FIX: Safe post_install block for CocoaPods 1.16.x compatibility ---
 post_install do |installer|
-  flutter_additional_ios_build_settings(installer)
+  begin
+    flutter_additional_ios_build_settings(installer)
+  rescue NoMethodError => e
+    puts "⚠️  Skipping Flutter post-install patch: #{e.message}"
+  end
 end
