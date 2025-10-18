@@ -7,11 +7,9 @@ project 'Runner', 'Debug' => :debug, 'Profile' => :release, 'Release' => :releas
 
 # --- Robust FLUTTER_ROOT discovery (works on Codemagic) ---
 def locate_flutter_root
-  # 1) Honor environment if Codemagic sets it
   fr = ENV['FLUTTER_ROOT']
   return fr unless fr.nil? || fr.empty?
 
-  # 2) Ask Flutter directly (most reliable)
   begin
     json = `flutter --version --machine 2>/dev/null`
     m = json.match(/"flutterRoot":"([^"]+)"/)
@@ -19,7 +17,6 @@ def locate_flutter_root
   rescue
   end
 
-  # 3) Fallback to Generated.xcconfig if present
   generated = File.expand_path(File.join(__dir__, 'Flutter', 'Generated.xcconfig'))
   if File.exist?(generated)
     File.foreach(generated) do |line|
@@ -32,23 +29,20 @@ def locate_flutter_root
 end
 
 flutter_root = locate_flutter_root
-abort('❌ FLUTTER_ROOT not found. Make sure Flutter is on PATH and run "flutter pub get".') \
+abort('FLUTTER_ROOT not found. Ensure Flutter is on PATH and run "flutter pub get".') \
   if flutter_root.nil? || flutter_root.empty?
 
-# Load Flutter’s official CocoaPods helpers
-require File.expand_path('packages/flutter_tools/lib/src/macos/cocoapods.rb', flutter_root)
+# ✅ Load Flutter's official CocoaPods helper (correct path)
+require File.expand_path('packages/flutter_tools/bin/podhelper', flutter_root)
 
 # Standard Flutter iOS setup
 flutter_ios_podfile_setup
 
 target 'Runner' do
-  use_frameworks!
-  use_modular_headers!
+  # Do NOT add/force use_frameworks! here unless you know you need it.
   flutter_install_all_ios_pods(File.dirname(File.realpath(__FILE__)))
 end
 
 post_install do |installer|
-  installer.pods_project.targets.each do |t|
-    flutter_additional_ios_build_settings(t)
-  end
+  flutter_additional_ios_build_settings(installer)
 end
