@@ -3,29 +3,59 @@ platform :ios, '13.0'
 use_frameworks! :linkage => :static
 use_modular_headers!
 
-# --- Load Flutter's CocoaPods helpers safely (two possible locations) ---
-helper_path = File.expand_path(File.join(__dir__, 'Flutter', 'podhelper.rb'))
-unless File.exist?(helper_path)
-  helper_path = File.expand_path(File.join(__dir__, '..', '.ios', 'Flutter', 'podhelper.rb'))
+# --- Try to load Flutter's CocoaPods helper (two possible locations) ---
+podhelper_candidates = [
+  File.expand_path(File.join(__dir__, 'Flutter', 'podhelper.rb')),
+  File.expand_path(File.join(__dir__, '..', '.ios', 'Flutter', 'podhelper.rb')),
+]
+podhelper_loaded = false
+podhelper_candidates.each do |p|
+  if File.exist?(p)
+    require p
+    podhelper_loaded = true
+    break
+  end
 end
-require helper_path
-# -----------------------------------------------------------------------
-
-# Set up the Flutter iOS pods (engine etc.)
-flutter_ios_podfile_setup
+# ----------------------------------------------------------------------
 
 target 'Runner' do
-  # Install all plugin pods via Flutter's helper
-  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  if podhelper_loaded && defined?(flutter_ios_podfile_setup) && defined?(flutter_install_all_ios_pods)
+    # Standard Flutter way (preferred)
+    flutter_ios_podfile_setup
+    flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  else
+    # -------- Fallback: manual plugin installation (no network) --------
+    # Use prebuilt Flutter engine podspec if present
+    config = ENV['CONFIGURATION'] || 'Release'
+    engine_podspec = File.expand_path(File.join(__dir__, 'Flutter', config, 'Flutter.podspec'))
+    pod 'Flutter', :podspec => engine_podspec if File.exist?(engine_podspec)
+
+    # Load iOS plugins from .flutter-plugins-dependencies
+    plugin_file = File.expand_path(File.join(__dir__, '..', '.flutter-plugins-dependencies'))
+    if File.exist?(plugin_file)
+      require 'json'
+      deps = JSON.parse(File.read(plugin_file))
+      ios_plugins = (deps['plugins'] || {})['ios'] || []
+      ios_plugins.each do |pl|
+        name = pl['name']
+        path = pl['path']
+        ios_path = File.expand_path(File.join(__dir__, '..', path, 'ios'))
+        pod name, :path => ios_path
+      end
+    end
+    # -------------------------------------------------------------------
+  end
 end
 
 post_install do |installer|
-  installer.pods_project.targets.each do |target|
-    # Apply Flutter’s recommended build settings
-    flutter_additional_ios_build_settings(target)
-    # Keep your minimum iOS version consistent
-    target.build_configurations.each do |config|
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+  installer.pods_project.targets.each do |t|
+    # Apply Flutter’s additional settings if helpers loaded
+    if podhelper_loaded && defined?(flutter_additional_ios_build_settings)
+      flutter_additional_ios_build_settings(t)
+    end
+    # Keep deployment target consistent
+    t.build_configurations.each do |c|
+      c.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
     end
   end
 end
