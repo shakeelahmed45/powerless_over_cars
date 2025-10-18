@@ -8,7 +8,6 @@ project 'Runner', {
   'Release' => :release,
 }
 
-# Use the helper that Flutter generates into .ios/Flutter/podhelper.rb
 flutter_application_path = '../'
 load File.join(flutter_application_path, '.ios', 'Flutter', 'podhelper.rb')
 
