@@ -1,0 +1,5 @@
+FLUTTER_ROOT=/opt/homebrew/Caskroom/flutter/latest/flutter
+FLUTTER_APPLICATION_PATH=$(SRCROOT)/..
+FLUTTER_TARGET=lib/main.dart
+FLUTTER_BUILD_DIR=build
+SYMROOT=${SOURCE_ROOT}/../build/ios
