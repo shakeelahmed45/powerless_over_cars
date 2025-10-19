@@ -38,5 +38,18 @@ jobs:
           pod install --repo-update
           cd ..
 
+      - name: Ensure Flutter iOS config files exist
+        run: |
+          echo "⚙️ Ensuring iOS config files exist..."
+          mkdir -p ios/Flutter
+          for config in Debug Release Profile; do
+            if [ ! -f "ios/Flutter/${config}.xcconfig" ]; then
+              echo "#include \"Generated.xcconfig\"" > ios/Flutter/${config}.xcconfig
+              echo "✅ Created ios/Flutter/${config}.xcconfig"
+            else
+              echo "✅ ios/Flutter/${config}.xcconfig already exists."
+            fi
+          done
+
       - name: Build iOS App (Debug)
         run: flutter build ios --debug --no-codesign
