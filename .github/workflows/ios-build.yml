@@ -20,24 +20,32 @@ jobs:
           flutter-version: '3.24.3'
           channel: 'stable'
 
-      - name: Install CocoaPods
+      - name: Flutter Clean and Get Packages
         run: |
-          sudo gem install cocoapods
-
-      - name: Get Flutter Dependencies
-        run: |
+          flutter clean
           flutter pub get
-
-      - name: Precache iOS Artifacts
-        run: |
           flutter precache --ios
 
-      - name: Run Pod Install
+      - name: Generate iOS Configs
+        run: |
+          mkdir -p ios/Flutter
+          echo "#include \"Generated.xcconfig\"" > ios/Flutter/Debug.xcconfig
+          echo "#include \"Generated.xcconfig\"" > ios/Flutter/Release.xcconfig
+          echo "#include \"Generated.xcconfig\"" > ios/Flutter/Profile.xcconfig
+
+      - name: Install CocoaPods
         run: |
           cd ios
-          pod install --repo-update
+          pod repo update
+          pod install
           cd ..
 
       - name: Build iOS App
         run: |
           flutter build ios --debug --no-codesign
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build
+          path: build/ios/iphoneos/
