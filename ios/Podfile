@@ -8,25 +8,25 @@ use_modular_headers!
 
 project 'Runner', 'Debug' => :debug, 'Profile' => :release, 'Release' => :release
 
-# --- Safe Flutter root discovery and Generated.xcconfig fallback ---
+# --- Safe Flutter root detection ---
 def flutter_root
+  # Prefer environment FLUTTER_ROOT (set by GitHub Actions or Codemagic)
+  env_root = ENV['FLUTTER_ROOT']
+  return env_root unless env_root.nil? || env_root.empty?
+
+  # Fallback to Generated.xcconfig if present
   generated_xcconfig = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __dir__)
-
-  unless File.exist?(generated_xcconfig)
-    puts "⚠️  Warning: Generated.xcconfig not found. Creating placeholder so build continues..."
-    FileUtils.mkdir_p(File.dirname(generated_xcconfig))
-    File.write(generated_xcconfig, "# Temporary Generated.xcconfig placeholder\nFLUTTER_ROOT=/tmp/flutter\n")
+  if File.exist?(generated_xcconfig)
+    File.foreach(generated_xcconfig) do |line|
+      return $1.strip if line =~ /FLUTTER_ROOT=(.*)/
+    end
   end
 
-  File.foreach(generated_xcconfig) do |line|
-    return $1.strip if line =~ /FLUTTER_ROOT=(.*)/
-  end
-
-  puts "⚠️  FLUTTER_ROOT not found in Generated.xcconfig. Using environment variable instead."
-  return ENV['FLUTTER_ROOT'] || '/usr/local/flutter'
+  puts "⚠️  FLUTTER_ROOT not found. Defaulting to /Users/runner/hostedtoolcache/flutter/stable-3.24.3-arm64"
+  return '/Users/runner/hostedtoolcache/flutter/stable-3.24.3-arm64'
 end
 
-# ✅ Fixed typo here: flutter_tools
+# ✅ Correct path for Flutter CocoaPods helper
 require File.expand_path('packages/flutter_tools/bin/podhelper', flutter_root)
 
 flutter_ios_podfile_setup
