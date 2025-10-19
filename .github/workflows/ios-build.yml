@@ -21,20 +21,16 @@ jobs:
           channel: 'stable'
 
       - name: Install Dependencies
-        run: |
-          flutter pub get
+        run: flutter pub get
 
-      - name: Prebuild iOS frameworks and configs
+      - name: Prebuild iOS Flutter files
         run: |
-          echo "🛠️ Rebuilding iOS Flutter frameworks..."
-          flutter precache --ios
-          flutter build ios-framework --no-profile --no-release --debug --output=ios/Flutter
-          if [ ! -f "ios/Flutter/AppFrameworkInfo.plist" ]; then
-            echo "⚙️ Creating missing AppFrameworkInfo.plist..."
-            echo '<?xml version="1.0" encoding="UTF-8"?>' > ios/Flutter/AppFrameworkInfo.plist
-            echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> ios/Flutter/AppFrameworkInfo.plist
-            echo '<plist version="1.0"><dict></dict></plist>' >> ios/Flutter/AppFrameworkInfo.plist
-          fi
+          echo "🛠️ Preparing iOS Flutter files..."
+          mkdir -p ios/Flutter
+          echo '<?xml version="1.0" encoding="UTF-8"?>' > ios/Flutter/AppFrameworkInfo.plist
+          echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> ios/Flutter/AppFrameworkInfo.plist
+          echo '<plist version="1.0"><dict></dict></plist>' >> ios/Flutter/AppFrameworkInfo.plist
+          echo "✅ Created ios/Flutter/AppFrameworkInfo.plist manually."
 
       - name: Install CocoaPods
         run: |
@@ -43,6 +39,4 @@ jobs:
           cd ..
 
       - name: Build iOS App (Debug)
-        run: |
-          flutter build ios --debug --no-codesign
-          
+        run: flutter build ios --debug --no-codesign
