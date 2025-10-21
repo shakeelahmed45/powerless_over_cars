@@ -1,4 +1,4 @@
-name: iOS Build and Upload
+name: iOS Build & Upload to TestFlight
 
 on:
   push:
@@ -51,7 +51,7 @@ jobs:
             fi
           done
 
-      - name: Build IPA
+      - name: Build IPA (Release)
         run: |
           echo "🏗️ Building release IPA..."
           flutter build ipa --release --no-codesign
@@ -60,16 +60,19 @@ jobs:
       - name: Export IPA manually
         run: |
           echo "📦 Exporting IPA from archive..."
+          ARCHIVE_PATH=$(find build/ios -type d -name "Runner.xcarchive" | head -n 1)
+          if [ -z "$ARCHIVE_PATH" ]; then
+            echo "❌ Runner.xcarchive not found!"
+            exit 1
+          fi
+          echo "📂 Found archive at: $ARCHIVE_PATH"
           mkdir -p build/ios/ipa
+          cp -R "$ARCHIVE_PATH/Products/Applications/Runner.app" build/ios/ipa/
           cd build/ios/ipa
-          cp ../../archive/Runner.xcarchive/Products/Applications/Runner.app .
           zip -r Runner.ipa Runner.app
           echo "✅ Created Runner.ipa for upload"
 
-      - name: Upload to TestFlight
-        env:
-          APPLE_ID: ${{ secrets.APP_STORE_EMAIL }}
-          APP_SPECIFIC_PASSWORD: ${{ secrets.APP_STORE_PASSWORD }}
+      - name: Upload IPA to TestFlight
         run: |
           echo "🚀 Uploading IPA to TestFlight..."
           IPA_PATH=$(find build/ios/ipa -name "*.ipa" | head -n 1)
@@ -84,3 +87,7 @@ jobs:
             --username "$APPLE_ID" \
             --password "$APP_SPECIFIC_PASSWORD" || exit 1
           echo "✅ Upload complete! Check App Store Connect → TestFlight."
+
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
