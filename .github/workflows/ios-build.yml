@@ -1,4 +1,4 @@
-name: iOS Build and Upload
+name: iOS Build and Upload to TestFlight
 
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Prebuild iOS Flutter files
+      - name: Prepare iOS Flutter files
         run: |
           echo "🛠️ Preparing iOS Flutter files..."
           mkdir -p ios/Flutter
@@ -38,7 +38,7 @@ jobs:
           pod install --repo-update
           cd ..
 
-      - name: Ensure Flutter iOS config files exist
+      - name: Ensure iOS config files exist
         run: |
           echo "⚙️ Ensuring iOS config files exist..."
           mkdir -p ios/Flutter
@@ -51,18 +51,23 @@ jobs:
             fi
           done
 
-      - name: Build iOS App (Release)
-        run: flutter build ipa --release --no-codesign
+      # 🏗️ Build the .ipa file
+      - name: Build iOS IPA
+        run: |
+          flutter build ipa --release --no-codesign
+          echo "✅ IPA build complete. Checking if file exists:"
+          ls -lh build/ios/ipa || true
 
-      # ✅ Upload the IPA to App Store Connect / TestFlight
-      - name: Upload to App Store Connect
-        uses: apple-actions/upload-testflight-build@v1
-        with:
-          app-path: build/ios/ipa/*.ipa
-          issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          api-key-id: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
-          api-private-key: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
-          bundle-id: ${{ secrets.BUNDLE_ID }}
-
-      - name: ✅ Success
-        run: echo "🎉 iOS Build and Upload completed successfully!"
+      # 🚀 Upload to App Store Connect using Apple’s transporter tool
+      - name: Upload to TestFlight
+        env:
+          APPLE_ID: ${{ secrets.APP_STORE_EMAIL }}
+          APP_SPECIFIC_PASSWORD: ${{ secrets.APP_STORE_PASSWORD }}
+        run: |
+          echo "🚀 Uploading IPA to TestFlight..."
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$(find build/ios/ipa -name '*.ipa' | head -n 1)" \
+            --username "$APPLE_ID" \
+            --password "$APP_SPECIFIC_PASSWORD"
+          echo "✅ Upload complete! Check App Store Connect > TestFlight."
