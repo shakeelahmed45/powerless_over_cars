@@ -51,23 +51,27 @@ jobs:
             fi
           done
 
-      # 🏗️ Build the .ipa file
-      - name: Build iOS IPA
+      - name: Build IPA
         run: |
+          echo "🏗️ Building release IPA..."
           flutter build ipa --release --no-codesign
-          echo "✅ IPA build complete. Checking if file exists:"
-          ls -lh build/ios/ipa || true
+          echo "✅ IPA build complete."
 
-      # 🚀 Upload to App Store Connect using Apple’s transporter tool
       - name: Upload to TestFlight
         env:
           APPLE_ID: ${{ secrets.APP_STORE_EMAIL }}
           APP_SPECIFIC_PASSWORD: ${{ secrets.APP_STORE_PASSWORD }}
         run: |
           echo "🚀 Uploading IPA to TestFlight..."
+          IPA_PATH=$(find build/ios/ipa -name "*.ipa" | head -n 1)
+          if [ -z "$IPA_PATH" ]; then
+            echo "❌ No IPA file found! Build may have failed."
+            exit 1
+          fi
+          echo "📦 Found IPA: $IPA_PATH"
           xcrun altool --upload-app \
             --type ios \
-            --file "$(find build/ios/ipa -name '*.ipa' | head -n 1)" \
+            --file "$IPA_PATH" \
             --username "$APPLE_ID" \
-            --password "$APP_SPECIFIC_PASSWORD"
-          echo "✅ Upload complete! Check App Store Connect > TestFlight."
+            --password "$APP_SPECIFIC_PASSWORD" || exit 1
+          echo "✅ Upload complete! Check App Store Connect → TestFlight."
