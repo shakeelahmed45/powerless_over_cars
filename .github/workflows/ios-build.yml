@@ -1,4 +1,4 @@
-name: iOS Build and Upload to TestFlight
+name: iOS Build and Upload
 
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Prepare iOS Flutter files
+      - name: Prebuild iOS Flutter files
         run: |
           echo "🛠️ Preparing iOS Flutter files..."
           mkdir -p ios/Flutter
@@ -38,7 +38,7 @@ jobs:
           pod install --repo-update
           cd ..
 
-      - name: Ensure iOS config files exist
+      - name: Ensure Flutter iOS config files exist
         run: |
           echo "⚙️ Ensuring iOS config files exist..."
           mkdir -p ios/Flutter
@@ -56,6 +56,15 @@ jobs:
           echo "🏗️ Building release IPA..."
           flutter build ipa --release --no-codesign
           echo "✅ IPA build complete."
+
+      - name: Export IPA manually
+        run: |
+          echo "📦 Exporting IPA from archive..."
+          mkdir -p build/ios/ipa
+          cd build/ios/ipa
+          cp ../../archive/Runner.xcarchive/Products/Applications/Runner.app .
+          zip -r Runner.ipa Runner.app
+          echo "✅ Created Runner.ipa for upload"
 
       - name: Upload to TestFlight
         env:
