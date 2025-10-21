@@ -1,4 +1,4 @@
-name: iOS Build
+name: iOS Build and Upload
 
 on:
   push:
@@ -51,5 +51,18 @@ jobs:
             fi
           done
 
-      - name: Build iOS App (Debug)
-        run: flutter build ios --debug --no-codesign
+      - name: Build iOS App (Release)
+        run: flutter build ipa --release --no-codesign
+
+      # ✅ Upload the IPA to App Store Connect / TestFlight
+      - name: Upload to App Store Connect
+        uses: apple-actions/upload-testflight-build@v1
+        with:
+          app-path: build/ios/ipa/*.ipa
+          issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          api-key-id: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          api-private-key: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+          bundle-id: ${{ secrets.BUNDLE_ID }}
+
+      - name: ✅ Success
+        run: echo "🎉 iOS Build and Upload completed successfully!"
