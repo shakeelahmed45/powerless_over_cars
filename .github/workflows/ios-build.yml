@@ -89,5 +89,5 @@ jobs:
           echo "✅ Upload complete! Check App Store Connect → TestFlight."
 
         env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
+          APPLE_ID: ${{ secrets.APP_ID }}
+          APP_SPECIFIC_PASSWORD: ${{ secrets.APP_STORE_PASSWORD }}
