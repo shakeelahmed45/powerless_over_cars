@@ -73,6 +73,9 @@ jobs:
           echo "✅ Created Runner.ipa for upload"
 
       - name: Upload IPA to TestFlight
+        env:
+          APPLE_ID: ${{ secrets.APP_STORE_EMAIL }}
+          APP_SPECIFIC_PASSWORD: ${{ secrets.APP_STORE_PASSWORD }}
         run: |
           echo "🚀 Uploading IPA to TestFlight..."
           IPA_PATH=$(find build/ios/ipa -name "*.ipa" | head -n 1)
@@ -84,10 +87,6 @@ jobs:
           xcrun altool --upload-app \
             --type ios \
             --file "$IPA_PATH" \
-            --username "$APP_ID" \
-            --password "$APP_STORE_PASSWORD" || exit 1
+            --username "$APPLE_ID" \
+            --password "$APP_SPECIFIC_PASSWORD" || exit 1
           echo "✅ Upload complete! Check App Store Connect → TestFlight."
-
-        env:
-          APPLE_ID: ${{ secrets.APP_ID }}
-          APP_SPECIFIC_PASSWORD: ${{ secrets.APP_STORE_PASSWORD }}
