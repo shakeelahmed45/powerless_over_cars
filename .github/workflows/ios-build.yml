@@ -60,7 +60,7 @@ jobs:
           security import /tmp/distribution.p12 -k ~/Library/Keychains/build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
           echo "✅ Code signing assets installed."
 
-      - name: 🏗️ Build (Flutter) and Archive (NO signing)
+      - name: 🏗️ Build (Flutter) and Archive (Manual Runner, Automatic Pods)
         env:
           TEAM_ID: ${{ secrets.TEAM_ID }}
           BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
@@ -69,7 +69,8 @@ jobs:
           echo "🏗️ Building Flutter app (no codesign)..."
           flutter build ios --release --no-codesign
 
-          echo "📦 Archiving app with proper Team metadata..."
+          echo "📦 Archiving app (Manual for Runner, Automatic for Pods)..."
+          echo "Using provisioning profile: $PROVISIONING_PROFILE_NAME"
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
@@ -82,6 +83,11 @@ jobs:
             PROVISIONING_PROFILE_SPECIFIER="$PROVISIONING_PROFILE_NAME" \
             OTHER_CODE_SIGN_FLAGS="--keychain ~/Library/Keychains/build.keychain" \
             EXCLUDED_ARCHS=armv7 \
+            "CODE_SIGNING_ALLOWED=YES" \
+            "CODE_SIGNING_REQUIRED=YES" \
+            "CODE_SIGN_STYLE[sdk=iphoneos*]=Manual" \
+            "CODE_SIGN_STYLE[sdk=macosx*]=Automatic" \
+            "CODE_SIGNING_ALLOWED[sdk=macosx*]=NO" \
             archive \
             -allowProvisioningUpdates
 
