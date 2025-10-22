@@ -56,18 +56,18 @@ jobs:
           security list-keychains -s ~/Library/Keychains/build.keychain
           security default-keychain -s ~/Library/Keychains/build.keychain
           security unlock-keychain -p "" ~/Library/Keychains/build.keychain
-          # ✅ Import certificate with password
           security import /tmp/distribution.p12 -k ~/Library/Keychains/build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
           echo "✅ Code signing assets installed."
 
-      - name: 🏗️ Build and Archive (Unsigned)
+      - name: 🏗️ Build and Archive iOS App
         env:
           TEAM_ID: ${{ secrets.TEAM_ID }}
           BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
         run: |
-          echo "🏗️ Building Flutter app (unsigned)..."
+          echo "🏗️ Building Flutter app..."
           flutter build ios --release --no-codesign
-          echo "📦 Archiving with signing disabled..."
+
+          echo "📦 Archiving app with team metadata but without signing Pods..."
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
@@ -76,9 +76,12 @@ jobs:
             archive \
             DEVELOPMENT_TEAM="$TEAM_ID" \
             PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
-            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
             OTHER_CODE_SIGN_FLAGS="--keychain ~/Library/Keychains/build.keychain" \
-            EXCLUDED_ARCHS=armv7
+            EXCLUDED_ARCHS=armv7 \
+            -allowProvisioningUpdates
 
       - name: 📝 Write ExportOptions (Manual signing)
         env:
