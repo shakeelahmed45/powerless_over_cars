@@ -1,4 +1,4 @@
-name: iOS Build & Upload to TestFlight
+name: iOS Build & Upload to TestFlight (Signed)
 
 on:
   push:
@@ -23,9 +23,8 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Prebuild iOS Flutter files
+      - name: Prepare iOS Config Files
         run: |
-          echo "🛠️ Preparing iOS Flutter files..."
           mkdir -p ios/Flutter
           echo '<?xml version="1.0" encoding="UTF-8"?>' > ios/Flutter/AppFrameworkInfo.plist
           echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> ios/Flutter/AppFrameworkInfo.plist
@@ -38,55 +37,50 @@ jobs:
           pod install --repo-update
           cd ..
 
-      - name: Ensure Flutter iOS config files exist
-        run: |
-          echo "⚙️ Ensuring iOS config files exist..."
-          mkdir -p ios/Flutter
-          for config in Debug Release Profile; do
-            if [ ! -f "ios/Flutter/${config}.xcconfig" ]; then
-              echo "#include \"Generated.xcconfig\"" > ios/Flutter/${config}.xcconfig
-              echo "✅ Created ios/Flutter/${config}.xcconfig"
-            else
-              echo "✅ ios/Flutter/${config}.xcconfig already exists."
-            fi
-          done
-
-      - name: Build IPA (Release)
-        run: |
-          echo "🏗️ Building release IPA..."
-          flutter build ipa --release --no-codesign
-          echo "✅ IPA build complete."
-
-      - name: Export IPA manually
-        run: |
-          echo "📦 Exporting IPA from archive..."
-          ARCHIVE_PATH=$(find build/ios -type d -name "Runner.xcarchive" | head -n 1)
-          if [ -z "$ARCHIVE_PATH" ]; then
-            echo "❌ Runner.xcarchive not found!"
-            exit 1
-          fi
-          echo "📂 Found archive at: $ARCHIVE_PATH"
-          mkdir -p build/ios/ipa
-          cp -R "$ARCHIVE_PATH/Products/Applications/Runner.app" build/ios/ipa/
-          cd build/ios/ipa
-          zip -r Runner.ipa Runner.app
-          echo "✅ Created Runner.ipa for upload"
-
-      - name: Upload IPA to TestFlight
+      - name: Build and Sign iOS IPA
         env:
-          APPLE_ID: ${{ secrets.APP_STORE_EMAIL }}
-          APP_SPECIFIC_PASSWORD: ${{ secrets.APP_STORE_PASSWORD }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+          BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
         run: |
-          echo "🚀 Uploading IPA to TestFlight..."
+          echo "🏗️ Building and signing iOS IPA..."
+          mkdir -p ~/private_keys
+          echo "${APP_STORE_CONNECT_API_KEY}" > ~/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8
+          
+          xcodebuild -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -archivePath build/ios/Runner.xcarchive \
+            archive \
+            DEVELOPMENT_TEAM="${{ secrets.TEAM_ID }}" \
+            PRODUCT_BUNDLE_IDENTIFIER="${{ secrets.BUNDLE_ID }}" \
+            CODE_SIGN_STYLE=Automatic
+
+          xcodebuild -exportArchive \
+            -archivePath build/ios/Runner.xcarchive \
+            -exportPath build/ios/ipa \
+            -exportOptionsPlist ios/exportOptions.plist \
+            -allowProvisioningUpdates
+
+          echo "✅ IPA build and signing complete."
+
+      - name: Upload to TestFlight
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+        run: |
+          echo "🚀 Uploading to TestFlight..."
           IPA_PATH=$(find build/ios/ipa -name "*.ipa" | head -n 1)
           if [ -z "$IPA_PATH" ]; then
-            echo "❌ No IPA file found! Build may have failed."
+            echo "❌ No IPA found."
             exit 1
           fi
-          echo "📦 Found IPA: $IPA_PATH"
+          echo "${APP_STORE_CONNECT_API_KEY}" > ~/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8
           xcrun altool --upload-app \
             --type ios \
             --file "$IPA_PATH" \
-            --username "$APPLE_ID" \
-            --password "$APP_SPECIFIC_PASSWORD" || exit 1
-          echo "✅ Upload complete! Check App Store Connect → TestFlight."
+            --apiKey "${APP_STORE_CONNECT_KEY_ID}" \
+            --apiIssuer "${APP_STORE_CONNECT_ISSUER_ID}"
+          echo "✅ Successfully uploaded to TestFlight."
