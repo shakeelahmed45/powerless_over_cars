@@ -1,4 +1,4 @@
-name: iOS Build & Upload to TestFlight (Stable No-Clean)
+name: iOS Build & Upload to TestFlight (Stable + Verified Export Fix)
 
 on:
   push:
@@ -91,6 +91,17 @@ jobs:
             archive \
             -allowProvisioningUpdates
 
+      - name: 🕵️ Check archive contents
+        run: |
+          echo "Checking for archive Info.plist..."
+          ls -R build/ios/Runner.xcarchive || true
+          if [ -f build/ios/Runner.xcarchive/Info.plist ]; then
+            echo "✅ Info.plist found."
+          else
+            echo "❌ Info.plist missing!"
+            exit 1
+          fi
+
       - name: 📝 Write ExportOptions (Manual signing)
         env:
           PROVISIONING_PROFILE_NAME: ${{ secrets.PROVISIONING_PROFILE_NAME }}
@@ -112,19 +123,23 @@ jobs:
           echo '</dict></plist>' >> ios/exportOptions.ci.plist
           echo "✅ ExportOptions created."
 
-      - name: 🔧 Patch archive Info.plist with Team metadata (Fix exportArchive)
+      - name: 🔧 Force-inject TeamIdentifier for exportArchive
         env:
           TEAM_ID: ${{ secrets.TEAM_ID }}
           BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
         run: |
           set -e
           INFO_PLIST="build/ios/Runner.xcarchive/Info.plist"
+          echo "Ensuring $INFO_PLIST exists..."
           if [ ! -f "$INFO_PLIST" ]; then
-            echo "❌ Archive Info.plist not found at $INFO_PLIST"
+            echo "❌ Archive Info.plist not found!"
             exit 1
           fi
 
-          echo "🔧 Rebuilding ApplicationProperties section..."
+          echo "🧩 Before patch:"
+          /usr/libexec/PlistBuddy -c "Print" "$INFO_PLIST" || true
+
+          echo "🔧 Injecting ApplicationProperties + TeamIdentifier..."
           /usr/libexec/PlistBuddy -c "Delete :ApplicationProperties" "$INFO_PLIST" || true
           /usr/libexec/PlistBuddy -c "Add :ApplicationProperties dict" "$INFO_PLIST"
           /usr/libexec/PlistBuddy -c "Add :ApplicationProperties:ApplicationPath string Payload/Runner.app" "$INFO_PLIST"
@@ -132,13 +147,16 @@ jobs:
           /usr/libexec/PlistBuddy -c "Add :ApplicationProperties:SigningStyle string Manual" "$INFO_PLIST"
           /usr/libexec/PlistBuddy -c "Add :ApplicationProperties:TeamIdentifier array" "$INFO_PLIST"
           /usr/libexec/PlistBuddy -c "Add :ApplicationProperties:TeamIdentifier:0 string $TEAM_ID" "$INFO_PLIST"
+          /usr/libexec/PlistBuddy -c "Add :ApplicationProperties:ProvisioningProfileName string PowerlessOverCarsProfile.mobileprovision" "$INFO_PLIST"
 
           /usr/libexec/PlistBuddy -c "Set :ArchiveVersion 1" "$INFO_PLIST" || /usr/libexec/PlistBuddy -c "Add :ArchiveVersion integer 1" "$INFO_PLIST"
-          /usr/libexec/PlistBuddy -c "Set :CreationDate $(/bin/date -u +"%Y-%m-%dT%H:%M:%SZ")" "$INFO_PLIST" || true
           /usr/libexec/PlistBuddy -c "Set :Name Runner" "$INFO_PLIST" || /usr/libexec/PlistBuddy -c "Add :Name string Runner" "$INFO_PLIST"
           /usr/libexec/PlistBuddy -c "Set :SchemeName Runner" "$INFO_PLIST" || /usr/libexec/PlistBuddy -c "Add :SchemeName string Runner" "$INFO_PLIST"
 
-          echo "✅ Archive Info.plist successfully rebuilt with full Team metadata."
+          echo "🧩 After patch:"
+          /usr/libexec/PlistBuddy -c "Print :ApplicationProperties" "$INFO_PLIST"
+
+          echo "✅ Team metadata injected successfully."
 
       - name: 📦 Export IPA (sign here)
         env:
@@ -146,9 +164,9 @@ jobs:
         run: |
           echo "📦 Exporting & signing IPA (manual signing via exportOptions)..."
           xcodebuild -exportArchive \
-            -archivePath build/ios/Runner.xcarchive \
-            -exportPath build/ios/ipa \
-            -exportOptionsPlist ios/exportOptions.ci.plist \
+            -archivePath "$GITHUB_WORKSPACE/build/ios/Runner.xcarchive" \
+            -exportPath "$GITHUB_WORKSPACE/build/ios/ipa" \
+            -exportOptionsPlist "$GITHUB_WORKSPACE/ios/exportOptions.ci.plist" \
             -allowProvisioningUpdates \
             DEVELOPMENT_TEAM="$TEAM_ID"
           echo "✅ IPA export complete."
