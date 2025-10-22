@@ -45,6 +45,7 @@ jobs:
       - name: 🔐 Setup Signing Certificates & Provisioning Profiles
         env:
           P12_BASE64: ${{ secrets.P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
           PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
         run: |
           echo "🔐 Setting up signing assets..."
@@ -52,10 +53,11 @@ jobs:
           echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/PowerlessOverCarsProfile.mobileprovision
           echo "$P12_BASE64" | base64 --decode > /tmp/distribution.p12
           security create-keychain -p "" build.keychain
-          security import /tmp/distribution.p12 -k ~/Library/Keychains/build.keychain -P "" -T /usr/bin/codesign
           security list-keychains -s ~/Library/Keychains/build.keychain
           security default-keychain -s ~/Library/Keychains/build.keychain
           security unlock-keychain -p "" ~/Library/Keychains/build.keychain
+          # ✅ Import certificate using your GitHub-secret password
+          security import /tmp/distribution.p12 -k ~/Library/Keychains/build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
           echo "✅ Code signing assets installed."
 
       - name: 🏗️ Build and Sign iOS IPA
@@ -65,10 +67,7 @@ jobs:
           PROVISIONING_PROFILE_UUID: ${{ secrets.PROVISIONING_PROFILE_UUID }}
         run: |
           echo "🏗️ Building and signing iOS IPA..."
-          
-          # ✅ DO NOT CLEAN — keep existing Flutter iOS files
           flutter build ios --release --no-codesign
-          
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
@@ -83,14 +82,12 @@ jobs:
             OTHER_CODE_SIGN_FLAGS="--keychain ~/Library/Keychains/build.keychain" \
             EXCLUDED_ARCHS=armv7 \
             -allowProvisioningUpdates
-          
           echo "📦 Exporting IPA..."
           xcodebuild -exportArchive \
             -archivePath build/ios/Runner.xcarchive \
             -exportPath build/ios/ipa \
             -exportOptionsPlist ios/exportOptions.plist \
             -allowProvisioningUpdates
-
           echo "✅ IPA build and signing complete."
 
       - name: 🚀 Upload to TestFlight
@@ -100,6 +97,7 @@ jobs:
           APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
         run: |
           echo "🚀 Uploading to TestFlight..."
+          mkdir -p ~/private_keys
           IPA_PATH=$(find build/ios/ipa -name "*.ipa" | head -n 1)
           if [ -z "$IPA_PATH" ]; then
             echo "❌ No IPA found."
