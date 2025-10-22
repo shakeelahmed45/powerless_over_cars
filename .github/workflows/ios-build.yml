@@ -11,45 +11,44 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - name: Checkout repository
+      - name: 🧭 Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Flutter
+      - name: ⚙️ Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.24.3"
-          channel: stable
+          flutter-version: '3.24.3'
+          channel: 'stable'
 
-      - name: Install dependencies
+      - name: 📦 Install Dependencies
         run: flutter pub get
 
-      - name: Prepare iOS Flutter files
+      - name: 🧩 Prepare iOS Config Files
         run: |
-          echo "Preparing iOS Flutter files..."
+          echo "🛠️ Preparing iOS Flutter files..."
           mkdir -p ios/Flutter
           if [ ! -f "ios/Flutter/AppFrameworkInfo.plist" ]; then
             echo '<?xml version="1.0" encoding="UTF-8"?>' > ios/Flutter/AppFrameworkInfo.plist
             echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> ios/Flutter/AppFrameworkInfo.plist
             echo '<plist version="1.0"><dict></dict></plist>' >> ios/Flutter/AppFrameworkInfo.plist
-            echo "Created ios/Flutter/AppFrameworkInfo.plist"
+            echo "✅ Created ios/Flutter/AppFrameworkInfo.plist"
           else
-            echo "AppFrameworkInfo.plist already exists."
+            echo "✅ AppFrameworkInfo.plist already exists."
           fi
 
-      - name: Install CocoaPods
+      - name: 🍫 Install CocoaPods
         run: |
           cd ios
           pod install --repo-update
           cd ..
 
-      - name: Setup signing certificates & profiles
+      - name: 🔐 Setup Signing Certificates & Provisioning Profiles
         env:
           P12_BASE64: ${{ secrets.P12_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
           PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
         run: |
-          set -e
-          echo "Installing signing assets..."
+          echo "🔐 Setting up signing assets..."
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
           echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode > "$HOME/Library/MobileDevice/Provisioning Profiles/PowerlessOverCarsProfile.mobileprovision"
           echo "$P12_BASE64" | base64 --decode > /tmp/distribution.p12
@@ -59,18 +58,18 @@ jobs:
           security default-keychain -s "$HOME/Library/Keychains/build.keychain"
           security unlock-keychain -p "" "$HOME/Library/Keychains/build.keychain"
           security import /tmp/distribution.p12 -k "$HOME/Library/Keychains/build.keychain" -P "$P12_PASSWORD" -T /usr/bin/codesign
-          echo "Signing assets installed."
+          echo "✅ Code signing assets installed."
 
-      - name: Build and archive (no code signing)
+      - name: 🏗️ Build and Archive (Manual for Runner, Auto for Pods)
         env:
           TEAM_ID: ${{ secrets.TEAM_ID }}
           BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
+          PROVISIONING_PROFILE_NAME: ${{ secrets.PROVISIONING_PROFILE_NAME }}
         run: |
-          set -e
-          echo "Building Flutter (no codesign)..."
+          echo "🏗️ Building Flutter app..."
           flutter build ios --release --no-codesign
 
-          echo "Archiving iOS app (CODE_SIGNING_ALLOWED=NO to avoid Pods signing)..."
+          echo "📦 Archiving iOS app..."
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
@@ -78,30 +77,25 @@ jobs:
             -destination 'generic/platform=iOS' \
             DEVELOPMENT_TEAM="$TEAM_ID" \
             PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
-            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROVISIONING_PROFILE_NAME" \
+            OTHER_CODE_SIGN_FLAGS="--keychain ~/Library/Keychains/build.keychain" \
             EXCLUDED_ARCHS=armv7 \
-            archive
+            "CODE_SIGNING_ALLOWED=YES" \
+            "CODE_SIGNING_REQUIRED=YES" \
+            archive \
+            -allowProvisioningUpdates
 
-      - name: Verify archive exists
-        run: |
-          echo "Listing archive contents..."
-          ls -la build/ios/Runner.xcarchive || true
-          if [ ! -f build/ios/Runner.xcarchive/Info.plist ]; then
-            echo "Archive Info.plist is missing (will be created next)."
-          else
-            echo "Archive Info.plist found."
-          fi
-
-      - name: Create ExportOptions (manual signing)
+      - name: 📝 Write ExportOptions (Manual Signing)
         env:
           TEAM_ID: ${{ secrets.TEAM_ID }}
-          PROVISIONING_PROFILE_NAME: ${{ secrets.PROVISIONING_PROFILE_NAME }}
           BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
+          PROVISIONING_PROFILE_NAME: ${{ secrets.PROVISIONING_PROFILE_NAME }}
         run: |
-          set -e
-          echo "Writing ios/exportOptions.ci.plist..."
+          echo "📝 Writing ios/exportOptions.ci.plist..."
           rm -f ios/exportOptions.ci.plist
-          echo '<?xml version="1.0" encoding="UTF-8"?>' >> ios/exportOptions.ci.plist
+          echo '<?xml version="1.0" encoding="UTF-8"?>' > ios/exportOptions.ci.plist
           echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> ios/exportOptions.ci.plist
           echo '<plist version="1.0"><dict>' >> ios/exportOptions.ci.plist
           echo '  <key>method</key><string>app-store-connect</string>' >> ios/exportOptions.ci.plist
@@ -115,76 +109,83 @@ jobs:
           echo '  <key>compileBitcode</key><false/>' >> ios/exportOptions.ci.plist
           echo '  <key>uploadSymbols</key><true/>' >> ios/exportOptions.ci.plist
           echo '</dict></plist>' >> ios/exportOptions.ci.plist
-          echo "ExportOptions created."
+          echo "✅ ExportOptions created."
 
-      - name: Ensure archive Info.plist & inject TeamIdentifier
+      - name: 🔓 Recreate and unlock keychain before export
+        env:
+          P12_BASE64: ${{ secrets.P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+        run: |
+          echo "🔐 Recreating keychain..."
+          security delete-keychain build.keychain || true
+          security create-keychain -p "" build.keychain
+          echo "$P12_BASE64" | base64 --decode > /tmp/distribution.p12
+          security import /tmp/distribution.p12 -k ~/Library/Keychains/build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security list-keychains -s ~/Library/Keychains/build.keychain
+          security default-keychain -s ~/Library/Keychains/build.keychain
+          security unlock-keychain -p "" ~/Library/Keychains/build.keychain
+          echo "✅ Keychain ready."
+
+      - name: 🔧 Ensure archive Info.plist exists & inject TeamIdentifier
         env:
           TEAM_ID: ${{ secrets.TEAM_ID }}
           BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
         run: |
-          set -e
           INFO_PLIST="build/ios/Runner.xcarchive/Info.plist"
           ARCHIVE_DIR="build/ios/Runner.xcarchive"
-
-          echo "Ensuring archive structure..."
           mkdir -p "$ARCHIVE_DIR"
 
           if [ ! -f "$INFO_PLIST" ]; then
-            echo "Creating new Info.plist with TeamIdentifier..."
+            echo "⚙️ Creating Info.plist..."
             echo '<?xml version="1.0" encoding="UTF-8"?>' > "$INFO_PLIST"
             echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> "$INFO_PLIST"
             echo '<plist version="1.0"><dict>' >> "$INFO_PLIST"
             echo '  <key>ApplicationProperties</key><dict>' >> "$INFO_PLIST"
             echo '    <key>ApplicationPath</key><string>Payload/Runner.app</string>' >> "$INFO_PLIST"
             echo '    <key>CFBundleIdentifier</key><string>'"$BUNDLE_ID"'</string>' >> "$INFO_PLIST"
-            echo '    <key>SigningStyle</key><string>Manual</string>' >> "$INFO_PLIST"
             echo '    <key>TeamIdentifier</key><array><string>'"$TEAM_ID"'</string></array>' >> "$INFO_PLIST"
             echo '  </dict>' >> "$INFO_PLIST"
             echo '  <key>ArchiveVersion</key><integer>1</integer>' >> "$INFO_PLIST"
             echo '  <key>Name</key><string>Runner</string>' >> "$INFO_PLIST"
             echo '  <key>SchemeName</key><string>Runner</string>' >> "$INFO_PLIST"
             echo '</dict></plist>' >> "$INFO_PLIST"
-            echo "Info.plist created."
+            echo "✅ Info.plist created."
           else
-            echo "Patching existing Info.plist TeamIdentifier..."
+            echo "✅ Info.plist found — patching TeamIdentifier..."
             /usr/libexec/PlistBuddy -c "Delete :ApplicationProperties:TeamIdentifier" "$INFO_PLIST" || true
             /usr/libexec/PlistBuddy -c "Add :ApplicationProperties:TeamIdentifier array" "$INFO_PLIST"
             /usr/libexec/PlistBuddy -c "Add :ApplicationProperties:TeamIdentifier:0 string $TEAM_ID" "$INFO_PLIST"
-            echo "TeamIdentifier patched."
+            echo "✅ Patched existing Info.plist."
           fi
 
-          echo "Validating Info.plist..."
-          plutil -lint "$INFO_PLIST" || { echo "Invalid Info.plist"; exit 1; }
-          echo "Final Info.plist (ApplicationProperties):"
           /usr/libexec/PlistBuddy -c "Print :ApplicationProperties" "$INFO_PLIST" || true
 
-      - name: Export IPA
+      - name: 📦 Export IPA (Verbose + Timeout)
         env:
           TEAM_ID: ${{ secrets.TEAM_ID }}
         run: |
-          set -e
-          echo "Exporting and signing IPA..."
-          xcodebuild -exportArchive \
+          echo "📦 Exporting and signing IPA (max 15min)..."
+          timeout 900 xcodebuild -exportArchive \
             -archivePath "$GITHUB_WORKSPACE/build/ios/Runner.xcarchive" \
             -exportPath "$GITHUB_WORKSPACE/build/ios/ipa" \
             -exportOptionsPlist "$GITHUB_WORKSPACE/ios/exportOptions.ci.plist" \
             -allowProvisioningUpdates \
-            DEVELOPMENT_TEAM="$TEAM_ID"
-          echo "IPA export complete."
+            -verbose \
+            DEVELOPMENT_TEAM="$TEAM_ID" || { echo "❌ Export failed or timed out."; exit 1; }
+          echo "✅ IPA export complete."
 
-      - name: Upload to TestFlight
+      - name: 🚀 Upload to TestFlight
         env:
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
         run: |
-          set -e
-          echo "Uploading to TestFlight..."
-          mkdir -p "$HOME/private_keys"
-          echo "${APP_STORE_CONNECT_API_KEY}" > "$HOME/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
+          echo "🚀 Uploading to TestFlight..."
+          mkdir -p ~/private_keys
+          echo "${APP_STORE_CONNECT_API_KEY}" > ~/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8
           IPA_PATH=$(find build/ios/ipa -name "*.ipa" | head -n 1)
           if [ -z "$IPA_PATH" ]; then
-            echo "No IPA found."
+            echo "❌ No IPA found."
             exit 1
           fi
           xcrun altool --upload-app \
@@ -192,4 +193,4 @@ jobs:
             --file "$IPA_PATH" \
             --apiKey "${APP_STORE_CONNECT_KEY_ID}" \
             --apiIssuer "${APP_STORE_CONNECT_ISSUER_ID}"
-          echo "Uploaded to TestFlight."
+          echo "✅ Successfully uploaded to TestFlight."
