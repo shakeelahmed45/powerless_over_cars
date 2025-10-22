@@ -53,37 +53,37 @@ jobs:
           echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/PowerlessOverCarsProfile.mobileprovision
           echo "$P12_BASE64" | base64 --decode > /tmp/distribution.p12
 
-          # Create and unlock a build keychain
           security create-keychain -p "" build.keychain
           security list-keychains -s ~/Library/Keychains/build.keychain
           security default-keychain -s ~/Library/Keychains/build.keychain
           security unlock-keychain -p "" ~/Library/Keychains/build.keychain
-
-          # Import the distribution certificate with password
           security import /tmp/distribution.p12 -k ~/Library/Keychains/build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
-
           echo "✅ Code signing assets installed."
 
       - name: 🏗️ Build (Flutter) and Archive (NO signing)
         env:
           TEAM_ID: ${{ secrets.TEAM_ID }}
           BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
+          PROVISIONING_PROFILE_NAME: ${{ secrets.PROVISIONING_PROFILE_NAME }}
         run: |
           echo "🏗️ Building Flutter app (no codesign)..."
           flutter build ios --release --no-codesign
 
-          echo "📦 Archiving with signing disabled to avoid Pods provisioning issues..."
+          echo "📦 Archiving app with proper Team metadata..."
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
             -archivePath build/ios/Runner.xcarchive \
             -destination 'generic/platform=iOS' \
-            archive \
             DEVELOPMENT_TEAM="$TEAM_ID" \
             PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
-            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROVISIONING_PROFILE_NAME" \
             OTHER_CODE_SIGN_FLAGS="--keychain ~/Library/Keychains/build.keychain" \
-            EXCLUDED_ARCHS=armv7
+            EXCLUDED_ARCHS=armv7 \
+            archive \
+            -allowProvisioningUpdates
 
       - name: 📝 Write ExportOptions (Manual signing)
         env:
