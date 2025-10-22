@@ -59,21 +59,20 @@ jobs:
           security default-keychain -s ~/Library/Keychains/build.keychain
           security unlock-keychain -p "" ~/Library/Keychains/build.keychain
 
-          # ✅ Import certificate using your GitHub secret password
+          # Import the distribution certificate with password
           security import /tmp/distribution.p12 -k ~/Library/Keychains/build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
 
           echo "✅ Code signing assets installed."
 
-      - name: 🏗️ Build and Archive (Automatic signing; no profile passed)
+      - name: 🏗️ Build (Flutter) and Archive (NO signing)
         env:
           TEAM_ID: ${{ secrets.TEAM_ID }}
           BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
         run: |
-          echo "🏗️ Building (Flutter) and archiving (Xcode) with Automatic signing..."
-          # Build Flutter app without codesign to generate iOS artifacts
+          echo "🏗️ Building Flutter app (no codesign)..."
           flutter build ios --release --no-codesign
 
-          # Archive with Automatic signing so Pods are NOT forced to use a profile
+          echo "📦 Archiving with signing disabled to avoid Pods provisioning issues..."
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
@@ -82,27 +81,33 @@ jobs:
             archive \
             DEVELOPMENT_TEAM="$TEAM_ID" \
             PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
-            CODE_SIGN_STYLE=Automatic \
+            CODE_SIGNING_ALLOWED=NO \
             OTHER_CODE_SIGN_FLAGS="--keychain ~/Library/Keychains/build.keychain" \
-            EXCLUDED_ARCHS=armv7 \
-            -allowProvisioningUpdates
+            EXCLUDED_ARCHS=armv7
 
-      - name: 📝 Write ExportOptions (Automatic)
+      - name: 📝 Write ExportOptions (Manual signing)
+        env:
+          PROVISIONING_PROFILE_NAME: ${{ secrets.PROVISIONING_PROFILE_NAME }}
+          BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
         run: |
-          echo "📝 Writing ios/exportOptions.ci.plist (automatic signing)..."
+          echo "📝 Writing ios/exportOptions.ci.plist (manual signing)..."
+          rm -f ios/exportOptions.ci.plist
           echo '<?xml version="1.0" encoding="UTF-8"?>' > ios/exportOptions.ci.plist
           echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> ios/exportOptions.ci.plist
           echo '<plist version="1.0"><dict>' >> ios/exportOptions.ci.plist
           echo '  <key>method</key><string>app-store</string>' >> ios/exportOptions.ci.plist
-          echo '  <key>signingStyle</key><string>automatic</string>' >> ios/exportOptions.ci.plist
+          echo '  <key>signingStyle</key><string>manual</string>' >> ios/exportOptions.ci.plist
+          echo '  <key>provisioningProfiles</key><dict>' >> ios/exportOptions.ci.plist
+          echo "    <key>${BUNDLE_ID}</key><string>${PROVISIONING_PROFILE_NAME}</string>" >> ios/exportOptions.ci.plist
+          echo '  </dict>' >> ios/exportOptions.ci.plist
           echo '  <key>stripSwiftSymbols</key><true/>' >> ios/exportOptions.ci.plist
           echo '  <key>compileBitcode</key><false/>' >> ios/exportOptions.ci.plist
           echo '  <key>uploadSymbols</key><true/>' >> ios/exportOptions.ci.plist
           echo '</dict></plist>' >> ios/exportOptions.ci.plist
 
-      - name: 📦 Export IPA
+      - name: 📦 Export IPA (sign here)
         run: |
-          echo "📦 Exporting IPA..."
+          echo "📦 Exporting & signing IPA (manual signing via exportOptions)..."
           xcodebuild -exportArchive \
             -archivePath build/ios/Runner.xcarchive \
             -exportPath build/ios/ipa \
