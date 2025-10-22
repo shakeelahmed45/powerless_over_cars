@@ -1,4 +1,4 @@
-name: iOS Build & Upload to TestFlight (Signed)
+name: iOS Build & Upload to TestFlight (Signed - Fixed)
 
 on:
   push:
@@ -29,7 +29,6 @@ jobs:
           echo '<?xml version="1.0" encoding="UTF-8"?>' > ios/Flutter/AppFrameworkInfo.plist
           echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> ios/Flutter/AppFrameworkInfo.plist
           echo '<plist version="1.0"><dict></dict></plist>' >> ios/Flutter/AppFrameworkInfo.plist
-          echo "✅ Created ios/Flutter/AppFrameworkInfo.plist manually."
 
       - name: Install CocoaPods
         run: |
@@ -47,6 +46,7 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/PowerlessOverCarsProfile.mobileprovision
           echo "$P12_BASE64" | base64 --decode > /tmp/distribution.p12
+          
           security create-keychain -p "" build.keychain
           security import /tmp/distribution.p12 -k ~/Library/Keychains/build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
           security list-keychains -s ~/Library/Keychains/build.keychain
@@ -54,7 +54,7 @@ jobs:
           security unlock-keychain -p "" ~/Library/Keychains/build.keychain
           echo "✅ Code signing assets installed."
 
-      - name: Build and Sign iOS IPA
+      - name: Build and Sign iOS IPA (Distribution)
         env:
           TEAM_ID: ${{ secrets.TEAM_ID }}
           BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
@@ -68,6 +68,7 @@ jobs:
             DEVELOPMENT_TEAM="$TEAM_ID" \
             PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
             CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
             PROVISIONING_PROFILE_SPECIFIER="PowerlessOverCarsProfile" \
             -allowProvisioningUpdates
 
