@@ -112,9 +112,10 @@ jobs:
           echo '</dict></plist>' >> ios/exportOptions.ci.plist
           echo "✅ ExportOptions created."
 
-      - name: 🔧 Patch archive with Team ID (Fix No Team Found)
+      - name: 🔧 Patch archive Info.plist with Team metadata (Fix exportArchive)
         env:
           TEAM_ID: ${{ secrets.TEAM_ID }}
+          BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
         run: |
           set -e
           INFO_PLIST="build/ios/Runner.xcarchive/Info.plist"
@@ -122,11 +123,22 @@ jobs:
             echo "❌ Archive Info.plist not found at $INFO_PLIST"
             exit 1
           fi
-          echo "🔧 Injecting TeamIdentifier=$TEAM_ID into archive Info.plist..."
-          /usr/libexec/PlistBuddy -c "Delete :ApplicationProperties:TeamIdentifier" "$INFO_PLIST" || true
-          /usr/libexec/PlistBuddy -c "Add :ApplicationProperties:TeamIdentifier array" "$INFO_PLIST" || true
+
+          echo "🔧 Rebuilding ApplicationProperties section..."
+          /usr/libexec/PlistBuddy -c "Delete :ApplicationProperties" "$INFO_PLIST" || true
+          /usr/libexec/PlistBuddy -c "Add :ApplicationProperties dict" "$INFO_PLIST"
+          /usr/libexec/PlistBuddy -c "Add :ApplicationProperties:ApplicationPath string Payload/Runner.app" "$INFO_PLIST"
+          /usr/libexec/PlistBuddy -c "Add :ApplicationProperties:CFBundleIdentifier string $BUNDLE_ID" "$INFO_PLIST"
+          /usr/libexec/PlistBuddy -c "Add :ApplicationProperties:SigningStyle string Manual" "$INFO_PLIST"
+          /usr/libexec/PlistBuddy -c "Add :ApplicationProperties:TeamIdentifier array" "$INFO_PLIST"
           /usr/libexec/PlistBuddy -c "Add :ApplicationProperties:TeamIdentifier:0 string $TEAM_ID" "$INFO_PLIST"
-          echo "✅ Team ID successfully injected into archive metadata."
+
+          /usr/libexec/PlistBuddy -c "Set :ArchiveVersion 1" "$INFO_PLIST" || /usr/libexec/PlistBuddy -c "Add :ArchiveVersion integer 1" "$INFO_PLIST"
+          /usr/libexec/PlistBuddy -c "Set :CreationDate $(/bin/date -u +"%Y-%m-%dT%H:%M:%SZ")" "$INFO_PLIST" || true
+          /usr/libexec/PlistBuddy -c "Set :Name Runner" "$INFO_PLIST" || /usr/libexec/PlistBuddy -c "Add :Name string Runner" "$INFO_PLIST"
+          /usr/libexec/PlistBuddy -c "Set :SchemeName Runner" "$INFO_PLIST" || /usr/libexec/PlistBuddy -c "Add :SchemeName string Runner" "$INFO_PLIST"
+
+          echo "✅ Archive Info.plist successfully rebuilt with full Team metadata."
 
       - name: 📦 Export IPA (sign here)
         env:
