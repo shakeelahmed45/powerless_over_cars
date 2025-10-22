@@ -37,25 +37,30 @@ jobs:
           pod install --repo-update
           cd ..
 
+      - name: Flutter Build for iOS
+        run: flutter build ios --release --no-codesign
+
       - name: Build and Sign iOS IPA
         env:
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
           BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
         run: |
           echo "🏗️ Building and signing iOS IPA..."
           mkdir -p ~/private_keys
           echo "${APP_STORE_CONNECT_API_KEY}" > ~/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8
-          
+
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
             -archivePath build/ios/Runner.xcarchive \
             archive \
-            DEVELOPMENT_TEAM="${{ secrets.TEAM_ID }}" \
-            PRODUCT_BUNDLE_IDENTIFIER="${{ secrets.BUNDLE_ID }}" \
-            CODE_SIGN_STYLE=Automatic
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            -allowProvisioningUpdates
 
           xcodebuild -exportArchive \
             -archivePath build/ios/Runner.xcarchive \
@@ -77,10 +82,14 @@ jobs:
             echo "❌ No IPA found."
             exit 1
           fi
+
+          mkdir -p ~/private_keys
           echo "${APP_STORE_CONNECT_API_KEY}" > ~/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8
+
           xcrun altool --upload-app \
             --type ios \
             --file "$IPA_PATH" \
             --apiKey "${APP_STORE_CONNECT_KEY_ID}" \
             --apiIssuer "${APP_STORE_CONNECT_ISSUER_ID}"
+
           echo "✅ Successfully uploaded to TestFlight."
