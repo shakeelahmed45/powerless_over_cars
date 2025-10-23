@@ -1,21 +1,28 @@
 # CocoaPods analytics disabled
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
-platform :ios, '13.0'   # keep 13.0 for Bitrise + current Flutter engine
+platform :ios, '13.0'
 
 use_frameworks! :linkage => :static
 use_modular_headers!
 
 project 'Runner', 'Debug' => :debug, 'Profile' => :release, 'Release' => :release
 
-# Load the local helper we just created
+# --- Flutter CocoaPods setup ---
+# Uses the local helper
 require_relative '../.ios/Flutter/podhelper'
 
 flutter_ios_podfile_setup
 
 target 'Runner' do
-  # Pass the ios/ dir so the helper can resolve paths from project root properly
+  use_frameworks!
+  use_modular_headers!
   flutter_install_all_ios_pods(File.dirname(File.realpath(__FILE__)))
+
+  # 🔑 Ensure Flutter.framework exists before compilation
+  pre_install do |installer|
+    system('flutter build ios --release --no-codesign') unless File.exist?('../build/ios/Release-iphoneos/Flutter.framework')
+  end
 end
 
 post_install do |installer|
