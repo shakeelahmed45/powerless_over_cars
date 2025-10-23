@@ -9,31 +9,24 @@ use_modular_headers!
 project 'Runner', 'Debug' => :debug, 'Profile' => :release, 'Release' => :release
 
 # --- Flutter CocoaPods setup ---
-# Use local podhelper.rb under .ios/Flutter
 require_relative '../.ios/Flutter/podhelper'
 
 flutter_ios_podfile_setup
 
 target 'Runner' do
-  # ✅ Fix for Bitrise environment paths
   app_path = File.dirname(File.realpath(__FILE__))
 
-  # Bitrise sometimes builds from /Users/vagrant/git/ios → adjust root if necessary
-  if app_path.include?("/Users/vagrant/git/")
-    app_path = "/Users/vagrant/git/ios"
-  end
-
+  # ✅ Bitrise path fix for Flutter plugin cache
+  ENV['PUB_CACHE'] = '/Users/vagrant/.pub-cache'
   flutter_install_all_ios_pods(app_path)
 end
 
-# --- Post install tweaks ---
+# --- Post install adjustments ---
 post_install do |installer|
   installer.pods_project.targets.each do |target|
-    # Apply Flutter additional build settings safely
     flutter_additional_ios_build_settings(target)
-
     target.build_configurations.each do |config|
-      # ✅ Ensure Bitrise compatibility and avoid build warnings
+      # Compatibility with Bitrise / Flutter 3.24+
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
       config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
       config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
