@@ -1,6 +1,8 @@
 # CocoaPods analytics disabled
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
+source 'https://cdn.cocoapods.org/'
+
 platform :ios, '13.0'
 
 use_frameworks! :linkage => :static
