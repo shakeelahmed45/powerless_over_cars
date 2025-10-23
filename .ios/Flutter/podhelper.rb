@@ -1,5 +1,6 @@
-# Final Flutter CocoaPods helper for Bitrise + Local builds
-# Handles both ios/ and darwin/ plugin layouts and corrects Bitrise paths.
+# Robust Flutter CocoaPods helper (final Bitrise-safe version)
+# Fixes duplicated vagrant paths and supports both ios/ and darwin/ layouts.
+
 require 'json'
 
 def flutter_ios_podfile_setup
@@ -30,12 +31,13 @@ def flutter_install_all_ios_pods(app_path)
     name = pl['name']
     raw_path = File.expand_path(File.join(app_path, '..', pl['path']))
 
-    # ✅ Fix for Bitrise where .pub-cache paths become double-prefixed
-    if raw_path.include?('/git/Users/vagrant/.pub-cache')
-      root = raw_path.sub('/git/Users/vagrant/.pub-cache', '/Users/vagrant/.pub-cache')
-    else
-      root = raw_path
-    end
+    # ✅ Fix for double "/Users/vagrant" paths
+    normalized = raw_path.gsub(%r{^/Users/vagrant/Users/vagrant}, '/Users/vagrant')
+
+    # ✅ Fix for double "/git/Users/vagrant" if present
+    normalized.gsub!(%r{/git/Users/vagrant}, '/Users/vagrant')
+
+    root = normalized
 
     possible_podspecs = [
       File.join(root, 'ios', "#{name}.podspec"),
