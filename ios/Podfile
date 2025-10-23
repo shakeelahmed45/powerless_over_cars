@@ -1,36 +1,39 @@
 # CocoaPods analytics disabled
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
+# ✅ iOS platform version compatible with Bitrise and Flutter
 platform :ios, '13.0'
 
 use_frameworks! :linkage => :static
 use_modular_headers!
 
+# Link to the Xcode project
 project 'Runner', 'Debug' => :debug, 'Profile' => :release, 'Release' => :release
 
 # --- Flutter CocoaPods setup ---
-# Uses the local podhelper.rb under .ios/Flutter
-require_relative '../.ios/Flutter/podhelper'
+# Use the podhelper from .ios/Flutter since that's where it exists in your project
+flutter_application_path = File.expand_path('..', __dir__)
+require_relative File.join(flutter_application_path, '.ios', 'Flutter', 'podhelper')
 
 flutter_ios_podfile_setup
 
 target 'Runner' do
-  # ✅ FIXED: Ensure correct Flutter path resolution for Bitrise & local
-  flutter_application_path = File.expand_path('..', __dir__)
-  flutter_install_all_ios_pods(flutter_application_path)
+  flutter_install_all_ios_pods(File.dirname(File.realpath(__FILE__)))
 end
 
-# --- Post install tweaks for stability ---
+# --- Post-install fixes ---
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
 
     target.build_configurations.each do |config|
-      # Enforce iOS 13+
+      # Ensure minimum iOS target for Bitrise
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
-      # Prevent simulator/arm64 issues
+
+      # Fix Bitrise simulator arm64 issues
       config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
-      # For dynamic frameworks compatibility
+
+      # Required for Flutter plugin stability
       config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
     end
   end
