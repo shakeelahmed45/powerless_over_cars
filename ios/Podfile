@@ -15,16 +15,22 @@ require_relative '../.ios/Flutter/podhelper'
 flutter_ios_podfile_setup
 
 target 'Runner' do
-  flutter_install_all_ios_pods(File.dirname(File.realpath(__FILE__)))
+  # ✅ FIXED: Ensure correct Flutter path resolution for Bitrise & local
+  flutter_application_path = File.expand_path('..', __dir__)
+  flutter_install_all_ios_pods(flutter_application_path)
 end
 
+# --- Post install tweaks for stability ---
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+
     target.build_configurations.each do |config|
-      # Fix common Bitrise / Xcode warnings
+      # Enforce iOS 13+
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+      # Prevent simulator/arm64 issues
       config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
+      # For dynamic frameworks compatibility
       config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
     end
   end
