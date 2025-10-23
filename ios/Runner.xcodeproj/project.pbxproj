@@ -374,7 +374,9 @@
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
 				DEVELOPMENT_TEAM = 655L6BWWDD;
-				CODE_SIGN_STYLE = Manual; 
+				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				PROVISIONING_PROFILE_SPECIFIER = "PowerlessOverCarsProfile"; 
 			};
 			name = Profile;
 		};
@@ -557,6 +559,8 @@
 				VERSIONING_SYSTEM = "apple-generic";
 				DEVELOPMENT_TEAM = 655L6BWWDD;
 				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				PROVISIONING_PROFILE_SPECIFIER = "PowerlessOverCarsProfile";
 			};
 			name = Debug;
 		};
@@ -580,6 +584,8 @@
 				VERSIONING_SYSTEM = "apple-generic";
 				DEVELOPMENT_TEAM = 655L6BWWDD;
 				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				PROVISIONING_PROFILE_SPECIFIER = "PowerlessOverCarsProfile";
 			};
 			name = Release;
 		};
