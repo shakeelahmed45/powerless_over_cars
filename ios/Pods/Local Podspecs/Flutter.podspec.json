@@ -1,0 +1,20 @@
+{
+  "name": "Flutter",
+  "version": "1.0.0",
+  "summary": "Prebuilt Flutter iOS Engine Framework",
+  "description": "Codemagic-safe local podspec",
+  "homepage": "https://flutter.dev",
+  "license": {
+    "type": "BSD"
+  },
+  "authors": {
+    "Flutter Dev": "flutter-dev@googlegroups.com"
+  },
+  "source": {
+    "path": "."
+  },
+  "platforms": {
+    "ios": "13.0"
+  },
+  "vendored_frameworks": "App.xcframework"
+}
