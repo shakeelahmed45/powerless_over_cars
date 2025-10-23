@@ -2,7 +2,6 @@
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
 platform :ios, '13.0'
-
 use_frameworks! :linkage => :static
 use_modular_headers!
 
@@ -14,19 +13,15 @@ require_relative '../.ios/Flutter/podhelper'
 flutter_ios_podfile_setup
 
 target 'Runner' do
-  app_path = File.dirname(File.realpath(__FILE__))
-
-  # ✅ Bitrise path fix for Flutter plugin cache
-  ENV['PUB_CACHE'] = '/Users/vagrant/.pub-cache'
-  flutter_install_all_ios_pods(app_path)
+  # Let Flutter decide pod paths dynamically
+  flutter_install_all_ios_pods(File.dirname(File.realpath(__FILE__)))
 end
 
-# --- Post install adjustments ---
+# --- Post install ---
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
-      # Compatibility with Bitrise / Flutter 3.24+
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
       config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
       config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
