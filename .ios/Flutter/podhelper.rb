@@ -1,20 +1,15 @@
-# Improved Flutter CocoaPods helper supporting iOS/darwin plugin structures
-
 require 'json'
 
 def flutter_ios_podfile_setup
-  # placeholder to keep parity with Flutter's default pod helper
+  # placeholder for compatibility
 end
 
 def flutter_install_all_ios_pods(app_path)
   config = ENV['CONFIGURATION'] || 'Release'
   engine_dir = File.expand_path(File.join(app_path, 'Flutter', config))
   engine_podspec = File.join(engine_dir, 'Flutter.podspec')
-
-  # Add Flutter engine pod if it exists locally
   pod 'Flutter', :path => engine_dir if File.exist?(engine_podspec)
 
-  # Load plugin dependencies
   plugin_file = File.expand_path(File.join(app_path, '..', '.flutter-plugins-dependencies'))
   return unless File.exist?(plugin_file)
 
@@ -23,21 +18,20 @@ def flutter_install_all_ios_pods(app_path)
 
   ios_plugins.each do |pl|
     name = pl['name']
-    root = File.expand_path(File.join(app_path, '..', pl['path']))
+    path = File.expand_path(File.join(app_path, '..', pl['path']))
 
-    # Check common plugin structures
-    candidate_paths = [
-      File.join(root, 'ios', "#{name}.podspec"),
-      File.join(root, 'darwin', "#{name}.podspec"),
-      File.join(root, "#{name}.podspec")
+    # ✅ Fix for CI (Bitrise)
+    podspec_paths = [
+      File.join(path, 'ios', "#{name}.podspec"),
+      File.join(path, 'darwin', "#{name}.podspec"),
+      File.join(path, "#{name}.podspec")
     ]
 
-    found_path = candidate_paths.find { |p| File.exist?(p) }
-
-    if found_path
-      pod name, :path => File.dirname(found_path)
+    valid_path = podspec_paths.find { |p| File.exist?(p) }
+    if valid_path
+      pod name, :path => File.dirname(valid_path)
     else
-      puts "⚠️  Could not find podspec for #{name} in any known location"
+      puts "⚠️  Podspec not found for #{name} — checked #{podspec_paths.join(', ')}"
     end
   end
 end
