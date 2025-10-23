@@ -1,10 +1,10 @@
-# Robust Flutter CocoaPods helper (final Bitrise-safe version)
-# Fixes duplicated vagrant paths and supports both ios/ and darwin/ layouts.
+# --- Final Bitrise-safe Flutter CocoaPods helper ---
+# Fixes duplicated /Users/vagrant paths and supports ios/, darwin/, or flat structures.
 
 require 'json'
 
 def flutter_ios_podfile_setup
-  # Placeholder for Flutter parity
+  # Placeholder to stay compatible with Flutter's Podfile template
 end
 
 def flutter_install_all_ios_pods(app_path)
@@ -31,11 +31,13 @@ def flutter_install_all_ios_pods(app_path)
     name = pl['name']
     raw_path = File.expand_path(File.join(app_path, '..', pl['path']))
 
-    # ✅ Fix for double "/Users/vagrant" paths
-    normalized = raw_path.gsub(%r{^/Users/vagrant/Users/vagrant}, '/Users/vagrant')
-
-    # ✅ Fix for double "/git/Users/vagrant" if present
-    normalized.gsub!(%r{/git/Users/vagrant}, '/Users/vagrant')
+    # --- 🔧 Normalize Bitrise path anomalies ---
+    normalized = raw_path
+      .gsub(%r{^/Users/vagrant/git/Users/vagrant}, '/Users/vagrant')
+      .gsub(%r{^/Users/vagrant/Users/vagrant}, '/Users/vagrant')
+      .gsub(%r{/git/Users/vagrant}, '/Users/vagrant')
+      .gsub(%r{/git/git/}, '/git/')
+      .gsub(%r{//+}, '/')
 
     root = normalized
 
