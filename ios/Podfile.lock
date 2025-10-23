@@ -1,28 +1,29 @@
 PODS:
-  - connectivity_plus (1.0.0):
+  - connectivity_plus (0.0.1):
     - Flutter
   - Flutter (1.0.0)
-  - webview_flutter_wkwebview (1.0.0):
+  - webview_flutter_wkwebview (0.0.1):
     - Flutter
+    - FlutterMacOS
 
 DEPENDENCIES:
-  - connectivity_plus (from `/Users/apple/powerless_over_cars/Users/apple/.pub-cache/hosted/pub.dev/connectivity_plus-7.0.0/ios`)
+  - connectivity_plus (from `/Users/apple/.pub-cache/hosted/pub.dev/connectivity_plus-7.0.0/ios`)
   - Flutter (from `/Users/apple/powerless_over_cars/ios/Flutter/Release`)
-  - webview_flutter_wkwebview (from `/Users/apple/powerless_over_cars/Users/apple/.pub-cache/hosted/pub.dev/webview_flutter_wkwebview-3.23.1/ios`)
+  - webview_flutter_wkwebview (from `/Users/apple/.pub-cache/hosted/pub.dev/webview_flutter_wkwebview-3.23.1/darwin`)
 
 EXTERNAL SOURCES:
   connectivity_plus:
-    :path: "/Users/apple/powerless_over_cars/Users/apple/.pub-cache/hosted/pub.dev/connectivity_plus-7.0.0/ios"
+    :path: "/Users/apple/.pub-cache/hosted/pub.dev/connectivity_plus-7.0.0/ios"
   Flutter:
     :path: "/Users/apple/powerless_over_cars/ios/Flutter/Release"
   webview_flutter_wkwebview:
-    :path: "/Users/apple/powerless_over_cars/Users/apple/.pub-cache/hosted/pub.dev/webview_flutter_wkwebview-3.23.1/ios"
+    :path: "/Users/apple/.pub-cache/hosted/pub.dev/webview_flutter_wkwebview-3.23.1/darwin"
 
 SPEC CHECKSUMS:
-  connectivity_plus: c1b2741b64be47094b7ecfde90d513ebe60fb2f0
+  connectivity_plus: 2a701ffec2c0ae28a48cf7540e279787e77c447d
   Flutter: 428a20447d23f822d858f80a890bca3d57b2d8b1
-  webview_flutter_wkwebview: 4301d759b4e5dd69738fbcaad0f5f5ddd7b98bee
+  webview_flutter_wkwebview: 29eb20d43355b48fe7d07113835b9128f84e3af4
 
-PODFILE CHECKSUM: 6a2c05318154a64151d67aaf4866ae071693f305
+PODFILE CHECKSUM: 16d8c224ed45a188f610b1ab90f9ca5d27df9b1e
 
 COCOAPODS: 1.16.2
