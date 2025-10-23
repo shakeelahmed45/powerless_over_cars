@@ -1,65 +1,43 @@
-# Enhanced Flutter CocoaPods helper (final Bitrise-compatible version)
-# Handles absolute plugin paths, nested podspecs, and CI environments.
+# Improved Flutter CocoaPods helper supporting iOS/darwin plugin structures
 
 require 'json'
-require 'pathname'
-require 'find'
 
 def flutter_ios_podfile_setup
-  # Placeholder for Flutter compatibility
+  # placeholder to keep parity with Flutter's default pod helper
 end
 
 def flutter_install_all_ios_pods(app_path)
-  # 1️⃣ Flutter engine pod (local)
   config = ENV['CONFIGURATION'] || 'Release'
   engine_dir = File.expand_path(File.join(app_path, 'Flutter', config))
   engine_podspec = File.join(engine_dir, 'Flutter.podspec')
+
+  # Add Flutter engine pod if it exists locally
   pod 'Flutter', :path => engine_dir if File.exist?(engine_podspec)
 
-  # 2️⃣ Load Flutter plugin dependencies
+  # Load plugin dependencies
   plugin_file = File.expand_path(File.join(app_path, '..', '.flutter-plugins-dependencies'))
-  unless File.exist?(plugin_file)
-    puts "⚠️  .flutter-plugins-dependencies not found. Run `flutter pub get` first."
-    return
-  end
+  return unless File.exist?(plugin_file)
 
   deps = JSON.parse(File.read(plugin_file))
   ios_plugins = (deps['plugins'] || {})['ios'] || []
 
   ios_plugins.each do |pl|
     name = pl['name']
-    plugin_path_from_flutter = pl['path']
-    path_obj = Pathname.new(plugin_path_from_flutter)
+    root = File.expand_path(File.join(app_path, '..', pl['path']))
 
-    # ✅ Handle absolute + relative plugin paths
-    plugin_root = if path_obj.absolute?
-      plugin_path_from_flutter
+    # Check common plugin structures
+    candidate_paths = [
+      File.join(root, 'ios', "#{name}.podspec"),
+      File.join(root, 'darwin', "#{name}.podspec"),
+      File.join(root, "#{name}.podspec")
+    ]
+
+    found_path = candidate_paths.find { |p| File.exist?(p) }
+
+    if found_path
+      pod name, :path => File.dirname(found_path)
     else
-      File.expand_path(File.join(app_path, '..', plugin_path_from_flutter))
-    end
-
-    ios_dir = File.join(plugin_root, 'ios')
-    root_podspec = File.join(plugin_root, "#{name}.podspec")
-    ios_podspec  = File.join(ios_dir, "#{name}.podspec")
-
-    # ✅ Try all likely podspec locations
-    if File.exist?(ios_podspec)
-      pod name, :path => ios_dir
-    elsif File.exist?(root_podspec)
-      pod name, :path => plugin_root
-    else
-      found_podspec = nil
-      Find.find(plugin_root) do |path|
-        if File.basename(path) == "#{name}.podspec"
-          found_podspec = File.dirname(path)
-          break
-        end
-      end
-      if found_podspec
-        pod name, :path => found_podspec
-      else
-        puts "⚠️  Podspec not found for #{name} — looked in #{plugin_root}"
-      end
+      puts "⚠️  Could not find podspec for #{name} in any known location"
     end
   end
 end
