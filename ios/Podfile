@@ -2,26 +2,26 @@
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
 platform :ios, '13.0'
+
 use_frameworks! :linkage => :static
 use_modular_headers!
 
 project 'Runner', 'Debug' => :debug, 'Profile' => :release, 'Release' => :release
 
-# --- Flutter CocoaPods setup ---
+# Locate Flutter helper correctly
 flutter_app_root = File.expand_path('..', __dir__)
 podhelper_path = File.expand_path(File.join(flutter_app_root, '.ios', 'Flutter', 'podhelper.rb'))
 
 if File.exist?(podhelper_path)
+  puts "✅ Using podhelper.rb from #{podhelper_path}"
   require podhelper_path
 else
-  puts "⚠️ podhelper.rb not found — regenerating .ios structure"
-  system('flutter clean && flutter pub get && flutter build ios --debug')
-  require podhelper_path
+  abort("❌ podhelper.rb not found at #{podhelper_path}. Run `flutter build ios` first to regenerate it.")
 end
 
 target 'Runner' do
-  flutter_ios_podfile_setup
-  flutter_install_all_ios_pods(File.dirname(File.realpath(__FILE__)))
+  flutter_ios_podfile_setup if defined?(flutter_ios_podfile_setup)
+  flutter_install_all_ios_pods(File.dirname(File.realpath(__FILE__))) if defined?(flutter_install_all_ios_pods)
 end
 
 post_install do |installer|
@@ -32,4 +32,5 @@ post_install do |installer|
       config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
     end
   end
+  puts "✅ Post-install completed."
 end
