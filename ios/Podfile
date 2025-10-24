@@ -1,8 +1,6 @@
 # CocoaPods analytics disabled
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
-source 'https://cdn.cocoapods.org/'
-
 platform :ios, '13.0'
 
 use_frameworks! :linkage => :static
@@ -11,30 +9,38 @@ use_modular_headers!
 project 'Runner', 'Debug' => :debug, 'Profile' => :release, 'Release' => :release
 
 # --- Flutter CocoaPods setup ---
-# Uses the local helper
-require_relative '../.ios/Flutter/podhelper'
+# Find the real Flutter helper inside your project folder
+flutter_app_root = File.expand_path('..', __dir__)
+podhelper_path = File.expand_path(File.join(flutter_app_root, '.ios', 'Flutter', 'podhelper.rb'))
 
-flutter_ios_podfile_setup
-
-target 'Runner' do
-  use_frameworks!
-  use_modular_headers!
-  flutter_install_all_ios_pods(File.dirname(File.realpath(__FILE__)))
-
-  # 🔑 Ensure Flutter.framework exists before compilation
-  pre_install do |installer|
-    system('flutter build ios --release --no-codesign') unless File.exist?('../build/ios/Release-iphoneos/Flutter.framework')
+if File.exist?(podhelper_path)
+  puts "✅ Using podhelper.rb from #{podhelper_path}"
+  require podhelper_path
+else
+  puts "⚠️  podhelper.rb not found at #{podhelper_path}, regenerating via flutter..."
+  system('flutter precache')
+  system('flutter pub get')
+  system('flutter build ios --debug') # ensures .ios structure is recreated
+  unless File.exist?(podhelper_path)
+    abort("❌ Failed to find podhelper.rb even after regeneration. Check Flutter SDK.")
   end
+  require podhelper_path
 end
 
+# --- Main Pod setup ---
+target 'Runner' do
+  flutter_ios_podfile_setup if defined?(flutter_ios_podfile_setup)
+  flutter_install_all_ios_pods(File.dirname(File.realpath(__FILE__))) if defined?(flutter_install_all_ios_pods)
+end
+
+# --- Post install block ---
 post_install do |installer|
   installer.pods_project.targets.each do |target|
-    flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
       config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
       config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
     end
   end
+  puts "✅ Post-install completed."
 end
-
