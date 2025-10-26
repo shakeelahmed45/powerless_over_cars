@@ -22,6 +22,10 @@ end
 target 'Runner' do
   flutter_ios_podfile_setup if defined?(flutter_ios_podfile_setup)
   flutter_install_all_ios_pods(File.dirname(File.realpath(__FILE__))) if defined?(flutter_install_all_ios_pods)
+
+  target 'RunnerTests' do
+    inherit! :search_paths
+  end
 end
 
 post_install do |installer|
