@@ -33,7 +33,7 @@ class WebPreview extends StatelessWidget {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'This is a web preview. The real app loads your site inside a secure in-app WebView on iOS and Android.',
+                  'This is just a preview. The real app loads your Powerless Over Cars website securely inside a native WebView on iOS and Android with navigation, pull-to-refresh, and native design.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.white70, fontSize: 14),
                 ),
