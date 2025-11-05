@@ -7,7 +7,7 @@ class OfflineOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.black.withOpacity(0.04),
+      color: Colors.black.withValues(alpha: 0.04),
       child: Center(
         child: Card(
           elevation: 2,

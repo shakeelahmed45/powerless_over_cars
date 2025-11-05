@@ -20,10 +20,10 @@ class WebPreview extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.car_repair, size: 72, color: Color(0xFFeb761c)),
+                Icon(Icons.directions_car, size: 72, color: Color(0xFFeb761c)),
                 SizedBox(height: 16),
                 Text(
-                  'iOS/Android build only',
+                  'Android / iOS App Preview',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -33,7 +33,7 @@ class WebPreview extends StatelessWidget {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'This is a web preview. The real app loads your site inside a secure in-app WebView on iOS and Android.',
+                  'This is a web preview. The real app runs securely as a WebView on iOS and Android.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.white70, fontSize: 14),
                 ),
