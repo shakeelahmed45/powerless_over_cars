@@ -54,6 +54,11 @@
 	</dict>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>This app uses tracking to deliver relevant notifications.</string>
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>This app uses location services to improve notifications and user experience.</string>
+
+<key>NSUserTrackingUsageDescription</key>
+<string>This app uses tracking to deliver relevant notifications.</string>
 
 </dict>
 </plist>

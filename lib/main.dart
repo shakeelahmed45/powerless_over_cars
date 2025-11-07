@@ -95,61 +95,79 @@ class _HomeScreenState extends State<HomeScreen> {
     Share.share("Check out this page: $currentUrl");
   }
 
+  // ✅ Handle Android/iOS back button
+  Future<bool> _handleBackButton() async {
+    final controller = _controllers[_currentIndex];
+    final canGoBack = await controller.canGoBack();
+    if (canGoBack) {
+      await controller.goBack();
+      return false; // Stay inside the app
+    }
+    if (_currentIndex != 0) {
+      setState(() => _currentIndex = 0); // Go back to main (Home) tab
+      return false;
+    }
+    return true; // Exit app if already on Home and no history
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Powerless Over Cars"), // ✅ fixed title
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share),
-            onPressed: _onSharePressed,
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            RefreshIndicator(
-              onRefresh: _onRefresh,
-              color: const Color(0xFFeb761c),
-              backgroundColor: const Color(0xFF022135),
-              child: WebViewWidget(controller: _controllers[_currentIndex]),
+    return WillPopScope(
+      onWillPop: _handleBackButton, // ✅ added back button handler
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text("Powerless Over Cars"), // ✅ fixed title
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.share),
+              onPressed: _onSharePressed,
             ),
-            if (_isLoading)
-              Container(
-                color: const Color(0xFF022135),
-                child: const Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      RotationTransitionSpinner(),
-                      SizedBox(height: 20),
-                      Text(
-                        'Loading...',
-                        style: TextStyle(
-                          color: Color(0xFFeb761c),
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
           ],
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.event), label: "Car Shows"),
-          BottomNavigationBarItem(icon: Icon(Icons.group), label: "Car Clubs"),
-          BottomNavigationBarItem(icon: Icon(Icons.business), label: "Advertisers"),
-          BottomNavigationBarItem(icon: Icon(Icons.article), label: "Blog"),
-        ],
+        body: SafeArea(
+          child: Stack(
+            children: [
+              RefreshIndicator(
+                onRefresh: _onRefresh,
+                color: const Color(0xFFeb761c),
+                backgroundColor: const Color(0xFF022135),
+                child: WebViewWidget(controller: _controllers[_currentIndex]),
+              ),
+              if (_isLoading)
+                Container(
+                  color: const Color(0xFF022135),
+                  child: const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        RotationTransitionSpinner(),
+                        SizedBox(height: 20),
+                        Text(
+                          'Loading...',
+                          style: TextStyle(
+                            color: Color(0xFFeb761c),
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (index) => setState(() => _currentIndex = index),
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+            BottomNavigationBarItem(icon: Icon(Icons.event), label: "Car Shows"),
+            BottomNavigationBarItem(icon: Icon(Icons.group), label: "Car Clubs"),
+            BottomNavigationBarItem(icon: Icon(Icons.business), label: "Advertisers"),
+            BottomNavigationBarItem(icon: Icon(Icons.article), label: "Blog"),
+          ],
+        ),
       ),
     );
   }
