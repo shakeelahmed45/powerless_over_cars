@@ -51,11 +51,6 @@ PODS:
     - OneSignalXCFramework/OneSignalNotifications
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalOutcomes
-  - path_provider_foundation (0.0.1):
-    - Flutter
-    - FlutterMacOS
-  - share_plus (0.0.1):
-    - Flutter
   - webview_flutter_wkwebview (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -64,8 +59,6 @@ DEPENDENCIES:
   - connectivity_plus (from `.symlinks/plugins/connectivity_plus/ios`)
   - Flutter (from `Flutter`)
   - onesignal_flutter (from `.symlinks/plugins/onesignal_flutter/ios`)
-  - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
-  - share_plus (from `.symlinks/plugins/share_plus/ios`)
   - webview_flutter_wkwebview (from `.symlinks/plugins/webview_flutter_wkwebview/darwin`)
 
 SPEC REPOS:
@@ -79,10 +72,6 @@ EXTERNAL SOURCES:
     :path: Flutter
   onesignal_flutter:
     :path: ".symlinks/plugins/onesignal_flutter/ios"
-  path_provider_foundation:
-    :path: ".symlinks/plugins/path_provider_foundation/darwin"
-  share_plus:
-    :path: ".symlinks/plugins/share_plus/ios"
   webview_flutter_wkwebview:
     :path: ".symlinks/plugins/webview_flutter_wkwebview/darwin"
 
@@ -91,8 +80,6 @@ SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   onesignal_flutter: f69ff09eeaf41cea4b7a841de5a61e79e7fd9a5a
   OneSignalXCFramework: 7112f3e89563e41ebc23fe807788f11985ac541c
-  path_provider_foundation: 0b743cbb62d8e47eab856f09262bb8c1ddcfe6ba
-  share_plus: c3fef564749587fc939ef86ffb283ceac0baf9f5
   webview_flutter_wkwebview: 29eb20d43355b48fe7d07113835b9128f84e3af4
 
 PODFILE CHECKSUM: 3c63482e143d1b91d2d2560aee9fb04ecc74ac7e

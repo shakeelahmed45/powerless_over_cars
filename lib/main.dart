@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 
@@ -90,11 +89,6 @@ class _HomeScreenState extends State<HomeScreen> {
     await _controllers[_currentIndex].reload();
   }
 
-  void _onSharePressed() {
-    final currentUrl = _tabs[_currentIndex]["url"]!;
-    Share.share("Check out this page: $currentUrl");
-  }
-
   // ✅ Handle Android/iOS back button
   Future<bool> _handleBackButton() async {
     final controller = _controllers[_currentIndex];
@@ -117,12 +111,6 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text("Powerless Over Cars"), // ✅ fixed title
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.share),
-              onPressed: _onSharePressed,
-            ),
-          ],
         ),
         body: SafeArea(
           child: Stack(
