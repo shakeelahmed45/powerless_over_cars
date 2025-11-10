@@ -60,5 +60,12 @@
 <key>NSUserTrackingUsageDescription</key>
 <string>This app uses tracking to deliver relevant notifications.</string>
 
+<key>NSCameraUsageDescription</key>
+<string>This app needs access to your camera to allow you to upload photos or take pictures for listings.</string>
+<key>NSPhotoLibraryUsageDescription</key>
+<string>This app needs access to your photo library to select and upload images for listings.</string>
+<key>NSMicrophoneUsageDescription</key>
+<string>This app may use your microphone when recording videos or audio for listings.</string>
+
 </dict>
 </plist>
